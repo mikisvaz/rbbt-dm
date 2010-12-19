@@ -52,10 +52,10 @@ double lBinom(double n, double k)
       builder.c <<-EOC
 /**
 *  * Compute the Hypergeometric accumulated value.
-*  * @param total => total size
-*  * @param support => total support
-*  * @param list => selected list size,
-*  * @param found => support
+*  * @param total       => total size
+*  * @param support     => total support
+*  * @param list        => selected list size
+*  * @param found       => support
 *  * @return The result
 *  */
 double hypergeometric(double total, double support, double list, double found)
@@ -104,29 +104,39 @@ class TSV
       hash = TCHash.get(annotation_count_cache_file)
 
       counts = Hash.new(0)
-      total = 0
       through :main, fields do |key, values|
-        values.flatten.uniq.each{|value| counts[value] += 1; total += 1}
+        values.flatten.compact.uniq.each{|value| counts[value] += 1}
       end
-      counts["_total"] = total
       hash.merge! counts
     end
   end
 
-  def enrichment(list, fields)
-    selected = select list
+  def enrichment(list, fields, options = {})
+    options = Misc.add_defaults options, :min_support => 3
+    Log.debug "Enrichment analysis of field #{fields.inspect} for #{list.length} entities"
+    selected = select :main => list
+    
+    tsv_size = keys.length
+    total = selected.keys.length
+    Log.debug "Found #{total} of #{list.length} entities"
+
     counts = annotation_counts fields
 
     annotations = Hash.new 0
-    total = 0
     selected.through :main, fields do |key, values|
-      values.flatten.uniq.each{|value| annotations[value] += 1; total += 1}
+      values.flatten.compact.uniq.each{|value| annotations[value] += 1}
     end
 
     pvalues = {}
     annotations.each do |annotation, count|
-      pvalues[annotation] = Hypergeometric.hypergeometric(counts["_total"], counts[annotation], count, total)
+      Log.debug "Hypergeometric: #{ annotation } - #{[tsv_size, counts[annotation], total, count].inspect}"
+      next if count < options[:min_support]
+      pvalue = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
+      pvalues[annotation] = pvalue
     end
+
+    FDR.adjust_hash! pvalues if options[:fdr]
+    pvalues.delete_if{|k, pvalue| pvalue > options[:cutoff] } if options[:cutoff]
 
     pvalues
   end
