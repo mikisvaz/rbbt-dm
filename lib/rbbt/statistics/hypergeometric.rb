@@ -1,5 +1,7 @@
 require 'inline'
 require 'rbbt/util/tsv'
+require 'rbbt/util/persistence'
+require 'rbbt/statistics/fdr'
 
 module Hypergeometric
   class << self
@@ -94,27 +96,20 @@ class TSV
     fields ||= self.fields
     fields = [fields] if String === fields or Symbol === fields
 
-    annotation_count_cache_file = TSV.get_persistence_file(File.basename(filename) + "_" + fields.inspect, File.expand_path(File.dirname(filename)))
-
-    if File.exists?(annotation_count_cache_file)
-      Log.low "Loading annotation counts from #{ annotation_count_cache_file }"
-      TCHash.get(annotation_count_cache_file)
-    else
-      Log.low "Saving annotation counts to #{ annotation_count_cache_file }"
-      hash = TCHash.get(annotation_count_cache_file)
-
+    Persistence.persist(filename, "Annotation_counts[#{fields.inspect}]", :tsv, :fields => fields) do |file, options|
       counts = Hash.new(0)
-      through :main, fields do |key, values|
+      through :key, fields do |key, values|
         values.flatten.compact.uniq.each{|value| counts[value] += 1}
       end
-      hash.merge! counts
+
+      counts
     end
   end
 
   def enrichment(list, fields, options = {})
-    options = Misc.add_defaults options, :min_support => 3
+    options = Misc.add_defaults options, :min_support => 3, :fdr => true, :cutoff => false
     Log.debug "Enrichment analysis of field #{fields.inspect} for #{list.length} entities"
-    selected = select :main => list
+    selected = select :key => list
     
     tsv_size = keys.length
     total = selected.keys.length
@@ -123,7 +118,7 @@ class TSV
     counts = annotation_counts fields
 
     annotations = Hash.new 0
-    selected.through :main, fields do |key, values|
+    selected.through :key, fields do |key, values|
       values.flatten.compact.uniq.each{|value| annotations[value] += 1}
     end
 
@@ -139,6 +134,14 @@ class TSV
     pvalues.delete_if{|k, pvalue| pvalue > options[:cutoff] } if options[:cutoff]
 
     pvalues
+  end
+
+  def enrichment_for(tsv, field, options = {} )
+    tsv = tsv.tsv if Path === tsv
+    index = TSV.find_traversal(self, tsv, true)
+    source_keys = index.values_at(*self.keys).flatten.compact.uniq
+
+    tsv.enrichment source_keys, field, options
   end
 end
 
