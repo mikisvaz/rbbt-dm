@@ -138,7 +138,10 @@ class TSV
 
   def enrichment_for(tsv, field, options = {} )
     tsv = tsv.tsv if Path === tsv
-    index = TSV.find_traversal(self, tsv, true)
+    index = TSV.find_traversal(self, tsv, :in_namespace => false, :persist_input => true)
+
+    raise "Cannot traverse identifiers" if index.nil?
+
     source_keys = index.values_at(*self.keys).flatten.compact.uniq
 
     tsv.enrichment source_keys, field, options
