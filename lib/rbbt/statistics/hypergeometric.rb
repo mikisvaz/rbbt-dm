@@ -92,11 +92,11 @@ end
 
 class TSV
 
-  def annotation_counts(fields = nil)
+  def annotation_counts(fields = nil, persistence = false)
     fields ||= self.fields
     fields = [fields] if String === fields or Symbol === fields
 
-    Persistence.persist(filename, "Annotation_counts[#{fields.inspect}]", :tsv, :fields => fields) do |file, options|
+    Persistence.persist(filename, "Annotation_counts[#{fields.inspect}]", :tsv, :fields => fields, :persistence => persistence) do |file, options|
       counts = Hash.new(0)
       through :key, fields do |key, values|
         values.flatten.compact.uniq.each{|value| counts[value] += 1}
