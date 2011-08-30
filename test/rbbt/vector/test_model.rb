@@ -26,7 +26,7 @@ class TestVectorModel < Test::Unit::TestCase
         element.split(";")
       }
 
-      model.train_model = Proc.new{|directory,features,labels|
+      model.train_model = Proc.new{|model_file,features,labels|
         TmpFile.with_file do |feature_file|
           Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
           Open.write(feature_file + '.class', labels * "\n")
@@ -36,19 +36,19 @@ labels = scan("#{ feature_file }.class", what=numeric());
 features = cbind(features, class = labels);
 library(e1071)
 model = svm(class ~ ., data = features) 
-save(model, file=paste("#{directory}", "model", sep="/"));
+save(model, file="#{ model_file }");
           EOF
         end
       }
 
-      model.eval_model = Proc.new{|directory,features|
+      model.eval_model = Proc.new{|model_file,features|
         TmpFile.with_file do |feature_file|
           TmpFile.with_file do |results|
             Open.write(feature_file, features * "\t")
             puts R.run(<<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 library(e1071)
-load(file=paste("#{ directory }", "model", sep="/"));
+load(file="#{ model_file }")
 label = predict(model, features);
 cat(label, file="#{results}");
             EOF

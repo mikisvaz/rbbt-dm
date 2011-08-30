@@ -1,6 +1,6 @@
 require 'inline'
-require 'rbbt/util/tsv'
-require 'rbbt/util/persistence'
+require 'rbbt/tsv'
+require 'rbbt/persist'
 require 'rbbt/statistics/fdr'
 
 module Hypergeometric
@@ -90,27 +90,28 @@ double hypergeometric(double total, double support, double list, double found)
   end
 end
 
-class TSV
+module TSV
 
   def annotation_counts(fields = nil, persistence = false)
     fields ||= self.fields
     fields = [fields] if String === fields or Symbol === fields
 
-    Persistence.persist(filename, "Annotation_counts[#{fields.inspect}]", :tsv, :fields => fields, :persistence => persistence) do |file, options|
-      counts = Hash.new(0)
+    Persist.persist(filename, :tsv, :fields => fields, :persist => persistence) do 
+      data ||= Hash.new(0)
       through :key, fields do |key, values|
-        values.flatten.compact.uniq.each{|value| counts[value] += 1}
+        values.flatten.compact.uniq.each{|value| data[value] += 1}
       end
 
-      counts
+      data
     end
   end
 
   def enrichment(list, fields, options = {})
     options = Misc.add_defaults options, :min_support => 3, :fdr => true, :cutoff => false
     Log.debug "Enrichment analysis of field #{fields.inspect} for #{list.length} entities"
+
     selected = select :key => list
-    
+
     tsv_size = keys.length
     total = selected.keys.length
     Log.debug "Found #{total} of #{list.length} entities"
@@ -119,19 +120,23 @@ class TSV
 
     annotations = Hash.new 0
     selected.through :key, fields do |key, values|
-      values.flatten.compact.uniq.each{|value| annotations[value] += 1}
+      values.flatten.compact.uniq.reject{|value| value.empty?}.each{|value| 
+        annotations[value] += 1
+      }
     end
 
     pvalues = {}
     annotations.each do |annotation, count|
-      Log.debug "Hypergeometric: #{ annotation } - #{[tsv_size, counts[annotation], total, count].inspect}"
       next if count < options[:min_support]
       pvalue = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
       pvalues[annotation] = pvalue
+      ddd pvalue if annotation == "hsa03440"
     end
 
     FDR.adjust_hash! pvalues if options[:fdr]
     pvalues.delete_if{|k, pvalue| pvalue > options[:cutoff] } if options[:cutoff]
+
+    TSV.setup(pvalues, :key_field => fields, :fields => ["p-value"], :cast => :to_f, :type => :single)
 
     pvalues
   end
