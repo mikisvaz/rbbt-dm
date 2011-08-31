@@ -4,8 +4,15 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
  }
  lib=lib {
   statistics=rbbt/statistics{
+   fdr.rb
    hypergeometric.rb
    fdr.rb
+  }
+  vector=rbbt/vector{
+   model.rb
+   model=model{
+    svm.rb
+   }
   }
  }
  test=test {

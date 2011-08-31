@@ -1,5 +1,7 @@
 require 'inline'
-require 'rbbt/util/tsv'
+require 'rbbt/tsv'
+require 'rbbt/persist'
+require 'rbbt/statistics/fdr'
 
 module Hypergeometric
   class << self
@@ -88,34 +90,28 @@ double hypergeometric(double total, double support, double list, double found)
   end
 end
 
-class TSV
+module TSV
 
-  def annotation_counts(fields = nil)
+  def annotation_counts(fields = nil, persistence = false)
     fields ||= self.fields
     fields = [fields] if String === fields or Symbol === fields
 
-    annotation_count_cache_file = TSV.get_persistence_file(File.basename(filename) + "_" + fields.inspect, File.expand_path(File.dirname(filename)))
-
-    if File.exists?(annotation_count_cache_file)
-      Log.low "Loading annotation counts from #{ annotation_count_cache_file }"
-      TCHash.get(annotation_count_cache_file)
-    else
-      Log.low "Saving annotation counts to #{ annotation_count_cache_file }"
-      hash = TCHash.get(annotation_count_cache_file)
-
-      counts = Hash.new(0)
-      through :main, fields do |key, values|
-        values.flatten.compact.uniq.each{|value| counts[value] += 1}
+    Persist.persist(filename, :tsv, :fields => fields, :persist => persistence) do 
+      data ||= Hash.new(0)
+      through :key, fields do |key, values|
+        values.flatten.compact.uniq.each{|value| data[value] += 1}
       end
-      hash.merge! counts
+
+      data
     end
   end
 
   def enrichment(list, fields, options = {})
-    options = Misc.add_defaults options, :min_support => 3
+    options = Misc.add_defaults options, :min_support => 3, :fdr => true, :cutoff => false
     Log.debug "Enrichment analysis of field #{fields.inspect} for #{list.length} entities"
-    selected = select :main => list
-    
+
+    selected = select :key => list
+
     tsv_size = keys.length
     total = selected.keys.length
     Log.debug "Found #{total} of #{list.length} entities"
@@ -123,22 +119,37 @@ class TSV
     counts = annotation_counts fields
 
     annotations = Hash.new 0
-    selected.through :main, fields do |key, values|
-      values.flatten.compact.uniq.each{|value| annotations[value] += 1}
+    selected.through :key, fields do |key, values|
+      values.flatten.compact.uniq.reject{|value| value.empty?}.each{|value| 
+        annotations[value] += 1
+      }
     end
 
     pvalues = {}
     annotations.each do |annotation, count|
-      Log.debug "Hypergeometric: #{ annotation } - #{[tsv_size, counts[annotation], total, count].inspect}"
       next if count < options[:min_support]
       pvalue = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
       pvalues[annotation] = pvalue
+      ddd pvalue if annotation == "hsa03440"
     end
 
     FDR.adjust_hash! pvalues if options[:fdr]
     pvalues.delete_if{|k, pvalue| pvalue > options[:cutoff] } if options[:cutoff]
 
+    TSV.setup(pvalues, :key_field => fields, :fields => ["p-value"], :cast => :to_f, :type => :single)
+
     pvalues
+  end
+
+  def enrichment_for(tsv, field, options = {} )
+    tsv = tsv.tsv if Path === tsv
+    index = TSV.find_traversal(self, tsv, :in_namespace => false, :persist_input => true)
+
+    raise "Cannot traverse identifiers" if index.nil?
+
+    source_keys = index.values_at(*self.keys).flatten.compact.uniq
+
+    tsv.enrichment source_keys, field, options
   end
 end
 
