@@ -119,10 +119,12 @@ module TSV
     counts = annotation_counts fields
 
     annotations = Hash.new 0
-    selected.through :key, fields do |key, values|
-      values.flatten.compact.uniq.reject{|value| value.empty?}.each{|value| 
-        annotations[value] += 1
-      }
+    with_unnamed do
+      selected.through :key, fields do |key, values|
+        values.flatten.compact.uniq.reject{|value| value.empty?}.each{|value| 
+          annotations[value] += 1
+        }
+      end
     end
 
     pvalues = {}
@@ -130,7 +132,6 @@ module TSV
       next if count < options[:min_support]
       pvalue = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
       pvalues[annotation] = pvalue
-      ddd pvalue if annotation == "hsa03440"
     end
 
     FDR.adjust_hash! pvalues if options[:fdr]
