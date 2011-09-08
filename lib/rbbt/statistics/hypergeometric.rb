@@ -96,7 +96,7 @@ module TSV
     fields ||= self.fields
     fields = [fields] if String === fields or Symbol === fields
 
-    Persist.persist(filename, :tsv, :fields => fields, :persist => persistence) do 
+    Persist.persist(filename, :marshal, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts") do 
       data ||= Hash.new(0)
       through :key, fields do |key, values|
         values.flatten.compact.uniq.each{|value| data[value] += 1}
@@ -106,7 +106,8 @@ module TSV
     end
   end
 
-  def enrichment(list, fields, options = {})
+  def enrichment(list, fields = nil, options = {})
+    fields ||= self.fields.first
     options = Misc.add_defaults options, :min_support => 3, :fdr => true, :cutoff => false
     Log.debug "Enrichment analysis of field #{fields.inspect} for #{list.length} entities"
 
@@ -116,7 +117,7 @@ module TSV
     total = selected.keys.length
     Log.debug "Found #{total} of #{list.length} entities"
 
-    counts = annotation_counts fields
+    counts = annotation_counts fields, options[:persist]
 
     annotations = Hash.new 0
     with_unnamed do
@@ -129,7 +130,7 @@ module TSV
 
     pvalues = {}
     annotations.each do |annotation, count|
-      next if count < options[:min_support]
+      next if count < options[:min_support] or not counts.include? annotation
       pvalue = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
       pvalues[annotation] = pvalue
     end
