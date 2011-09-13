@@ -35,8 +35,7 @@ load(file="#{model_file}");
 cat(paste(label, sep="\\n"));
         EOF
 
-
-        res = io.read.split(/\s+/).collect{|l| l.to_f}
+        res = io.read.sub(/WARNING: .*?\n/s,'').split(/\s+/).collect{|l| l.to_f}
 
         if list
           res
