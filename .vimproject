@@ -8,6 +8,9 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
    fdr.rb
    random_walk.rb
   }
+  network=rbbt/network{
+   paths.rb
+  }
   vector=rbbt/vector{
    model.rb
    model=model{
