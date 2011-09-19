@@ -105,6 +105,32 @@ module Paths
       parents
     end
   end
+end
 
+module Entity
+  module Adjacent
+    def path_to(adjacency, entities)
+      if Array === self
+        self.collect{|gene| gene.path_to(adjacency, entities)}
+      else
+        if adjacency.type == :flat
+          Paths.dijkstra(adjacency, self, entities)
+        else
+          Paths.weighted_dijkstra(adjacency, self, entities)
+        end
+      end
+    end
 
+    def random_paths_to(adjacency, l, times, entities)
+      if Array === self
+        self.inject([]){|acc,gene| acc += gene.random_paths_to(adjacency, l, times, entities)}
+      else
+        paths = []
+        times.times do 
+          paths << Paths.random_weighted_dijkstra(adjacency, l, self, entities)
+        end
+        paths
+      end
+    end
+  end
 end

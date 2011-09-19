@@ -155,5 +155,13 @@ module TSV
   end
 end
 
+module Entity
+  module Enriched
+    def enrichment(file, fields = nil, options = {})
+      file = file.tsv if Path === file
+      file.enrichment self, fields, options
+    end
+  end
+end
 
 
