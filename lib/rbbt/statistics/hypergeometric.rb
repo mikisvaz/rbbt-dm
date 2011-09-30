@@ -2,6 +2,7 @@ require 'inline'
 require 'rbbt/tsv'
 require 'rbbt/persist'
 require 'rbbt/statistics/fdr'
+require 'rbbt/entity'
 
 module Hypergeometric
   class << self
