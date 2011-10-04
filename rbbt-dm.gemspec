@@ -37,15 +37,18 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<rbbt-util>, [">= 0"])
       s.add_runtime_dependency(%q<rbbt-entities>, [">= 0"])
       s.add_runtime_dependency(%q<RubyInline>, [">= 0"])
+      s.add_runtime_dependency(%q<priority_queue>, [">= 0"])
     else
       s.add_dependency(%q<rbbt-util>, [">= 0"])
       s.add_dependency(%q<rbbt-entities>, [">= 0"])
       s.add_dependency(%q<RubyInline>, [">= 0"])
+      s.add_dependency(%q<priority_queue>, [">= 0"])
     end
   else
     s.add_dependency(%q<rbbt-util>, [">= 0"])
     s.add_dependency(%q<rbbt-entities>, [">= 0"])
     s.add_dependency(%q<RubyInline>, [">= 0"])
+    s.add_dependency(%q<priority_queue>, [">= 0"])
   end
 end
 
