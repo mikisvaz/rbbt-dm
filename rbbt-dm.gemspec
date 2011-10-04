@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{rbbt-dm}
-  s.version = "0.0.1"
+  s.version = "0.0.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Miguel Vazquez"]
-  s.date = %q{2010-12-20}
+  s.date = %q{2011-10-04}
   s.description = %q{Data-mining and statistics}
   s.email = %q{miguel.vazquez@fdi.ucm.es}
   s.extra_rdoc_files = [
@@ -17,30 +17,35 @@ Gem::Specification.new do |s|
   ]
   s.files = [
     "LICENSE",
+    "lib/rbbt/network/paths.rb",
     "lib/rbbt/statistics/fdr.rb",
-    "lib/rbbt/statistics/hypergeometric.rb"
+    "lib/rbbt/statistics/hypergeometric.rb",
+    "lib/rbbt/statistics/random_walk.rb",
+    "lib/rbbt/vector/model.rb",
+    "lib/rbbt/vector/model/svm.rb"
   ]
   s.homepage = %q{http://github.com/mikisvaz/rbbt-phgx}
   s.require_paths = ["lib"]
-  s.rubygems_version = %q{1.3.7}
+  s.rubygems_version = %q{1.6.2}
   s.summary = %q{Data-mining and statistics}
-  s.test_files = [
-    "test/rbbt/statistics/test_fdr.rb",
-    "test/rbbt/statistics/test_hypergeometric.rb",
-    "test/test_helper.rb"
-  ]
+  s.test_files = ["test/rbbt/statistics/test_fdr.rb", "test/rbbt/statistics/test_hypergeometric.rb", "test/rbbt/vector/test_model.rb", "test/rbbt/vector/model/test_svm.rb", "test/rbbt/network/test_paths.rb", "test/test_helper.rb"]
 
   if s.respond_to? :specification_version then
-    current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_runtime_dependency(%q<rbbt-util>, [">= 0"])
+      s.add_runtime_dependency(%q<rbbt-entities>, [">= 0"])
+      s.add_runtime_dependency(%q<RubyInline>, [">= 0"])
     else
       s.add_dependency(%q<rbbt-util>, [">= 0"])
+      s.add_dependency(%q<rbbt-entities>, [">= 0"])
+      s.add_dependency(%q<RubyInline>, [">= 0"])
     end
   else
     s.add_dependency(%q<rbbt-util>, [">= 0"])
+    s.add_dependency(%q<rbbt-entities>, [">= 0"])
+    s.add_dependency(%q<RubyInline>, [">= 0"])
   end
 end
 
