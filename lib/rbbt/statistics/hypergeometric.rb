@@ -99,8 +99,11 @@ module TSV
 
     Persist.persist(filename, :marshal, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts") do 
       data ||= Hash.new(0)
-      through :key, fields do |key, values|
-        values.flatten.compact.uniq.each{|value| data[value] += 1}
+
+      with_unnamed do
+        through :key, fields do |key, values|
+          values.flatten.compact.uniq.each{|value| data[value] += 1}
+        end
       end
 
       data
@@ -121,7 +124,7 @@ module TSV
     counts = annotation_counts fields, options[:persist]
 
     annotations = Hash.new 0
-    with_unnamed do
+    selected.with_unnamed do
       selected.through :key, fields do |key, values|
         values.flatten.compact.uniq.reject{|value| value.empty?}.each{|value| 
           annotations[value] += 1

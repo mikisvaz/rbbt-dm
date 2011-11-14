@@ -1,5 +1,6 @@
 require 'png'
 require 'inline'
+require 'set'
 
 module RandomWalk
 
@@ -89,8 +90,10 @@ module RandomWalk
     if size == 0
       [0] * times
     else
+      a = (0..total - 1).to_a
       (1..times).collect do
-        score(Array.new(size){ (rand * total).to_i }.sort, total, missing).abs
+        a.shuffle!
+        score(a[1..size].sort, total, missing).abs
       end
     end
   end
@@ -154,5 +157,29 @@ module RandomWalk
     else
       png.to_blob
     end
+  end
+end
+
+module OrderedList
+  def self.hits(list, set)
+    set = Set.new(set) unless Set === set
+    hits = []
+    list.each_with_index do |e,i|
+      hits << i if set.include? e
+    end
+    hits
+  end
+
+  def self.draw_hits(list, set, filename = nil, options = {})
+    hits = OrderedList.hits(list, set)
+    RandomWalk.draw_hits(hits, list.length, filename, options)
+  end
+
+  def hits(set)
+    OrderedList.hits(self, set)
+  end
+
+  def draw_hits(list, set, filename = nil, options = {})
+    OrderedList.draw_hits(self, set, filename, options)
   end
 end
