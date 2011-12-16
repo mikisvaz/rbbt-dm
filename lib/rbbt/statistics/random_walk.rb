@@ -117,7 +117,7 @@ module RandomWalk
     :green => PNG::Color::Green,
     :white => PNG::Color::White,
     :black => PNG::Color::Black,
-
+    :gray => PNG::Color::Gray,
   }
 
   def self.draw_hits(hits, total, filename = nil, options = {})
@@ -134,7 +134,7 @@ module RandomWalk
       hits = hits.collect{|h| (h.to_f * size / total).to_i}
     end
 
-    canvas = PNG::Canvas.new size, width, COLORS[bg_color]
+    canvas = PNG::Canvas.new size, width, COLORS[bg_color] || PNG::Color.from(bg_color)
 
     sections.each{|color, info|
       start = info[0]
@@ -179,7 +179,15 @@ module OrderedList
     OrderedList.hits(self, set)
   end
 
-  def draw_hits(list, set, filename = nil, options = {})
+  def draw_hits(set, filename = nil, options = {})
     OrderedList.draw_hits(self, set, filename, options)
+  end
+
+  def pvalue(set, options = {})
+    options = Misc.add_defaults options, :permutations => 1000, :missing => 0
+    hits = hits(set.compact)
+    score = RandomWalk.score(hits.sort, self.length, 0)
+    permutations = RandomWalk.permutations(set.length, self.length, options[:missing], options[:permutations])
+    RandomWalk.pvalue(permutations, score)
   end
 end

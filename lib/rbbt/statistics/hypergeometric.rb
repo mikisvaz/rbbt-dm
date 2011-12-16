@@ -97,7 +97,7 @@ module TSV
     fields ||= self.fields
     fields = [fields] if String === fields or Symbol === fields
 
-    Persist.persist(filename, :marshal, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts") do 
+    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts") do 
       data ||= Hash.new(0)
 
       with_unnamed do
@@ -111,40 +111,66 @@ module TSV
   end
 
   def enrichment(list, fields = nil, options = {})
-    fields ||= self.fields.first
-    options = Misc.add_defaults options, :min_support => 3, :fdr => true, :cutoff => false
-    Log.debug "Enrichment analysis of field #{fields.inspect} for #{list.length} entities"
+    with_unnamed do
+      fields ||= self.fields.first
+      options = Misc.add_defaults options, :min_support => 3, :fdr => true, :cutoff => false, :add_keys => true
 
-    selected = select :key => list
+      add_keys = Misc.process_options options, :add_keys
 
-    tsv_size = keys.length
-    total = selected.keys.length
-    Log.debug "Found #{total} of #{list.length} entities"
+      Log.debug "Enrichment analysis of field #{fields.inspect} for #{list.length} entities"
 
-    counts = annotation_counts fields, options[:persist]
+      selected = select :key => list
 
-    annotations = Hash.new 0
-    selected.with_unnamed do
-      selected.through :key, fields do |key, values|
-        values.flatten.compact.uniq.reject{|value| value.empty?}.each{|value| 
-          annotations[value] += 1
-        }
+      tsv_size = keys.length
+      total = selected.keys.length
+      Log.debug "Found #{total} of #{list.length} entities"
+
+      counts = annotation_counts fields, options[:persist]
+
+      annotations = Hash.new 
+      annotation_keys = Hash.new
+      selected.with_unnamed do
+        selected.through :key, fields do |key, values|
+          values.flatten.compact.uniq.reject{|value| value.empty?}.each{|value| 
+            value = value.dup
+            annotations[value] ||= 0
+            annotations[value] += 1
+            next unless add_keys
+            annotation_keys[value] ||= []
+            annotation_keys[value] << key
+          }
+        end
       end
+
+      pvalues = {}
+      annotations.each do |annotation, count|
+        next if count < options[:min_support] or not counts.include? annotation
+        pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
+      end
+
+      FDR.adjust_hash! pvalues if options[:fdr]
+
+      pvalues.delete_if{|k, pvalue| pvalue > options[:cutoff] } if options[:cutoff]
+
+      TSV.setup(pvalues, :key_field => fields, :fields => ["p-value"], :cast => :to_f, :type => :single)
+
+      if add_keys
+        tsv = TSV.setup(pvalues.keys, :key_field => fields, :fields => [], :type => :double)
+
+        tsv.add_field 'p-value' do |annot, values|
+          [pvalues[annot]]
+        end
+
+        tsv.add_field self.key_field do |annot, values|
+          annotation_keys[annot]
+        end
+
+        tsv
+      else
+        pvalues
+      end
+
     end
-
-    pvalues = {}
-    annotations.each do |annotation, count|
-      next if count < options[:min_support] or not counts.include? annotation
-      pvalue = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
-      pvalues[annotation] = pvalue
-    end
-
-    FDR.adjust_hash! pvalues if options[:fdr]
-    pvalues.delete_if{|k, pvalue| pvalue > options[:cutoff] } if options[:cutoff]
-
-    TSV.setup(pvalues, :key_field => fields, :fields => ["p-value"], :cast => :to_f, :type => :single)
-
-    pvalues
   end
 
   def enrichment_for(tsv, field, options = {} )
@@ -163,7 +189,8 @@ module Entity
   module Enriched
     def enrichment(file, fields = nil, options = {})
       file = file.tsv if Path === file
-      file.enrichment self, fields, options
+      res = file.enrichment self, fields, options
+      res.attach 
     end
   end
 end
