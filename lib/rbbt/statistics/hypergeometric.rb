@@ -189,8 +189,7 @@ module Entity
   module Enriched
     def enrichment(file, fields = nil, options = {})
       file = file.tsv if Path === file
-      res = file.enrichment self, fields, options
-      res.attach 
+      file.enrichment self, fields, options
     end
   end
 end
