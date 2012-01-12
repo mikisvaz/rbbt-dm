@@ -162,7 +162,11 @@ module TSV
         end
 
         tsv.add_field self.key_field do |annot, values|
-          annotation_keys[annot]
+          if list.respond_to? :annotate
+            list.annotate annotation_keys[annot]
+          else
+            annotation_keys[annot]
+          end
         end
 
         tsv
