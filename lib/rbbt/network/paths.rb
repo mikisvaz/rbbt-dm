@@ -24,7 +24,7 @@ module Paths
 
 
     if end_node
-      end_node = (end_node & parents.keys).first unless String === end_node
+      end_node = end_node.select{|n| parents.keys.include? n}.first unless String === end_node
       return nil if not parents.include? end_node
       path = [end_node]
       while not path.last === start_node
