@@ -38,7 +38,7 @@ row7    A    B    Id3
     TmpFile.with_file(content) do |filename|
       tsv = TSV.open(filename, :sep => /\s+/)
 
-      assert_equal %w(a), tsv.enrichment(%w(row1 row3 row4 row5), "ValueA", :fdr => false).collect{|annot,pvalue| pvalue < 0.05 ? annot : nil}.compact
+      assert_equal %w(a), tsv.enrichment(%w(row1 row3 row4 row5), "ValueA", :fdr => false).collect{|annot, values| pvalue = values.first.first.to_f; pvalue < 0.05 ? annot : nil}.compact
     end
   end
 end

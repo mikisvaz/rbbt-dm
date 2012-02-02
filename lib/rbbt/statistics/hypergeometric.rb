@@ -101,9 +101,30 @@ module TSV
       data ||= Hash.new(0)
 
       with_unnamed do
-        through :key, fields do |key, values|
-          values.flatten.compact.uniq.each{|value| data[value] += 1}
+
+        case type
+        when :single
+          through :key, fields do |key, value|
+            next if value.nil?
+            data[value] += 1
+          end
+        when :double
+          through :key, fields do |key, values|
+            next if values.nil?
+            values.flatten.compact.uniq.each{|value| data[value] += 1}
+          end
+        when :list
+          through :key, fields do |key, values|
+            next if values.nil?
+            values.compact.uniq.each{|value| data[value] += 1}
+          end
+        when :flat
+          through :key, fields do |key, values|
+            next if values.nil?
+            values.compact.uniq.each{|value| data[value] += 1}
+          end
         end
+
       end
 
       data
@@ -130,16 +151,56 @@ module TSV
       annotations = Hash.new 
       annotation_keys = Hash.new
       selected.with_unnamed do
-        selected.through :key, fields do |key, values|
-          values.flatten.compact.uniq.reject{|value| value.empty?}.each{|value| 
+
+        case type
+        when :single
+          selected.through :key, fields do |key, value|
             value = value.dup
             annotations[value] ||= 0
             annotations[value] += 1
             next unless add_keys
             annotation_keys[value] ||= []
             annotation_keys[value] << key
-          }
+          end
+
+        when :double
+          selected.through :key, fields do |key, values|
+            values.flatten.compact.uniq.reject{|value| value.empty?}.each{|value| 
+              value = value.dup
+              annotations[value] ||= 0
+              annotations[value] += 1
+              next unless add_keys
+              annotation_keys[value] ||= []
+              annotation_keys[value] << key
+            }
+          end
+
+        when :list
+          selected.through :key, fields do |key, values|
+            values.compact.uniq.reject{|value| value.empty?}.each{|value| 
+              value = value.dup
+              annotations[value] ||= 0
+              annotations[value] += 1
+              next unless add_keys
+              annotation_keys[value] ||= []
+              annotation_keys[value] << key
+            }
+          end
+
+        when :flat
+          selected.through :key, fields do |key, values|
+            values.compact.uniq.reject{|value| value.empty?}.each{|value| 
+              value = value.dup
+              annotations[value] ||= 0
+              annotations[value] += 1
+              next unless add_keys
+              annotation_keys[value] ||= []
+              annotation_keys[value] << key
+            }
+          end
+
         end
+
       end
 
       pvalues = {}
