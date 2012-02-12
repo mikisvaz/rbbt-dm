@@ -90,10 +90,29 @@ module RandomWalk
     if size == 0
       [0] * times
     else
-      a = (0..total - 1).to_a
       (1..times).collect do
-        a.shuffle!
-        score(a[1..size].sort, total, missing).abs
+        p = Set.new
+
+        if size > total / 10
+          template = (0..total - 1).to_a
+          size.times do |i|
+            pos = (rand * total - i).floor
+            v, template[pos] = template[pos], template[-1]
+          end
+        else
+          size.times do 
+            pos = nil
+            while pos.nil? 
+              pos = (rand * total).floor
+              if p.include? pos
+                pos = nil
+              end
+            end
+            p << pos
+          end
+        end
+
+        score(p.sort, total, missing).abs
       end
     end
   end
@@ -184,10 +203,35 @@ module OrderedList
   end
 
   def pvalue(set, options = {})
-    options = Misc.add_defaults options, :permutations => 1000, :missing => 0
-    hits = hits(set.compact)
+    set = Set.new(set.compact) unless Set === set
+    options = Misc.add_defaults options, :permutations => 10000, :missing => 0
+    hits = hits(set)
     score = RandomWalk.score(hits.sort, self.length, 0)
     permutations = RandomWalk.permutations(set.length, self.length, options[:missing], options[:permutations])
     RandomWalk.pvalue(permutations, score)
+  end
+end
+
+module TSV
+
+  def self.rank_enrichment_for_list(list, hits, options = {})
+    list.extend OrderedList
+    list.pvalue((hits & list), options)
+  end
+
+  def self.rank_enrichment(tsv, list, options = {})
+    res = TSV.setup({}, :type => :double, :key_field => tsv.key_field, :fields => ["p-value", tsv.fields.first]) if tsv.fields
+    tsv.with_monitor do
+      tsv.through do |key, values|
+        pvalue = rank_enrichment_for_list(list, values, options)
+        res[key] = [pvalue, values.respond_to?(:subset) ? values.subset(list) :  values - list]
+      end
+    end
+    FDR.adjust_hash! res, 0 if options[:fdr]
+    res
+  end
+
+  def rank_enrichment(list, options = {})
+    TSV.rank_enrichment(self, list, options)
   end
 end
