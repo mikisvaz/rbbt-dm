@@ -132,6 +132,18 @@ module TSV
   end
 
   def enrichment(list, fields = nil, options = {})
+    background = options.delete :background
+
+    if background and not background.empty?
+      filter
+      add_filter(:key, background)
+      if defined? AnnotatedArray and AnnotatedArray === list
+        list = list.subset background
+      else
+        list = list & background
+      end
+    end
+
     with_unnamed do
       fields ||= self.fields.first
       options = Misc.add_defaults options, :min_support => 3, :fdr => true, :cutoff => false, :add_keys => true
@@ -201,6 +213,11 @@ module TSV
 
         end
 
+      end
+
+      if background
+        reset_filters
+        pop_filter
       end
 
       pvalues = {}
