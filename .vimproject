@@ -9,6 +9,9 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
    random_walk.rb
    rank_product.rb
   }
+  plots=rbbt/plots{
+   bar.rb
+  }
   network=rbbt/network{
    paths.rb
   }
