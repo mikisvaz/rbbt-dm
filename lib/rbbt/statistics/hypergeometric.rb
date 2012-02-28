@@ -93,11 +93,12 @@ end
 
 module TSV
 
-  def annotation_counts(fields = nil, persistence = false)
+  def annotation_counts(fields = nil, persistence = false, options = {})
     fields ||= self.fields
     fields = [fields] if String === fields or Symbol === fields
+    rename = options.delete :rename
 
-    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts") do 
+    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts", :other => { :rename => rename }) do 
       data ||= Hash.new(0)
 
       with_unnamed do
@@ -109,9 +110,16 @@ module TSV
             data[value] += 1
           end
         when :double
-          through :key, fields do |key, values|
-            next if values.nil?
-            values.flatten.compact.uniq.each{|value| data[value] += 1}
+          if rename
+            Log.debug("Computing annotation counts with rename: #{rename.values.flatten.compact.uniq.sort * ", "} ")
+            through :key, fields do |key, values|
+              next if values.nil?
+              values.flatten.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq.each{|value| data[value] += 1 }
+            end
+          else
+            through :key, fields do |key, values|
+              values.flatten.compact.uniq.each{|value| data[value] += 1}
+            end
           end
         when :list
           through :key, fields do |key, values|
@@ -119,9 +127,17 @@ module TSV
             values.compact.uniq.each{|value| data[value] += 1}
           end
         when :flat
-          through :key, fields do |key, values|
-            next if values.nil?
-            values.compact.uniq.each{|value| data[value] += 1}
+          if rename
+            Log.debug("Computing annotation counts with rename: #{rename.values.flatten.compact.uniq.sort * ", "} ")
+            through :key, fields do |key, values|
+              next if values.nil?
+              values.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq.each{|value| data[value] += 1 }
+            end
+          else
+            through :key, fields do |key, values|
+              next if values.nil?
+              values.compact.uniq.each{|value| data[value] += 1}
+            end
           end
         end
 
@@ -148,19 +164,18 @@ module TSV
       fields ||= self.fields.first
       options = Misc.add_defaults options, :min_support => 3, :fdr => true, :cutoff => false, :add_keys => true
 
-      add_keys = Misc.process_options options, :add_keys
+      add_keys, rename = Misc.process_options options, :add_keys, :rename
 
       Log.debug "Enrichment analysis of field #{fields.inspect} for #{list.length} entities"
 
-      selected = select :key => list
+      selected = select :key => list.uniq
 
       tsv_size = keys.length
       total = selected.keys.length
       Log.debug "Found #{total} of #{list.length} entities"
 
-      counts = annotation_counts fields, options[:persist]
+      counts = annotation_counts fields, options[:persist], :rename => rename
 
-      annotations = Hash.new 
       annotation_keys = Hash.new
       selected.with_unnamed do
 
@@ -168,9 +183,6 @@ module TSV
         when :single
           selected.through :key, fields do |key, value|
             value = value.dup
-            annotations[value] ||= 0
-            annotations[value] += 1
-            next unless add_keys
             annotation_keys[value] ||= []
             annotation_keys[value] << key
           end
@@ -179,9 +191,6 @@ module TSV
           selected.through :key, fields do |key, values|
             values.flatten.compact.uniq.reject{|value| value.empty?}.each{|value| 
               value = value.dup
-              annotations[value] ||= 0
-              annotations[value] += 1
-              next unless add_keys
               annotation_keys[value] ||= []
               annotation_keys[value] << key
             }
@@ -191,9 +200,6 @@ module TSV
           selected.through :key, fields do |key, values|
             values.compact.uniq.reject{|value| value.empty?}.each{|value| 
               value = value.dup
-              annotations[value] ||= 0
-              annotations[value] += 1
-              next unless add_keys
               annotation_keys[value] ||= []
               annotation_keys[value] << key
             }
@@ -203,9 +209,6 @@ module TSV
           selected.through :key, fields do |key, values|
             values.compact.uniq.reject{|value| value.empty?}.each{|value| 
               value = value.dup
-              annotations[value] ||= 0
-              annotations[value] += 1
-              next unless add_keys
               annotation_keys[value] ||= []
               annotation_keys[value] << key
             }
@@ -221,7 +224,9 @@ module TSV
       end
 
       pvalues = {}
-      annotations.each do |annotation, count|
+      annotation_keys.each do |annotation, elems|
+        elems = elems.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq if rename
+        count = elems.length
         next if count < options[:min_support] or not counts.include? annotation
         pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
       end

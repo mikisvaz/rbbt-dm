@@ -140,6 +140,7 @@ module RandomWalk
   }
 
   def self.draw_hits(hits, total, filename = nil, options = {})
+    update = options[:update]
 
     size = options[:size] || total
     bg_color = options[:bg_color] || :white
@@ -147,13 +148,12 @@ module RandomWalk
     sections = options[:sections] || []
 
     size = [size, total].min
+    canvas = PNG::Canvas.new size, width, COLORS[bg_color] || PNG::Color.from(bg_color)
 
     hits = hits.collect{|h| h - 1}
     if size < total
       hits = hits.collect{|h| (h.to_f * size / total).to_i}
     end
-
-    canvas = PNG::Canvas.new size, width, COLORS[bg_color] || PNG::Color.from(bg_color)
 
     sections.each{|color, info|
       start = info[0]
