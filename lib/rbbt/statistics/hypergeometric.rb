@@ -160,6 +160,8 @@ module TSV
       end
     end
 
+    list = list.compact.uniq
+
     with_unnamed do
       fields ||= self.fields.first
       options = Misc.add_defaults options, :min_support => 3, :fdr => true, :cutoff => false, :add_keys => true

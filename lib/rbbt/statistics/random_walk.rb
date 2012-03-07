@@ -1,6 +1,7 @@
 require 'png'
 require 'inline'
 require 'set'
+require 'rbbt/util/misc'
 
 module RandomWalk
 
@@ -91,27 +92,7 @@ module RandomWalk
       [0] * times
     else
       (1..times).collect do
-        p = Set.new
-
-        if size > total / 10
-          template = (0..total - 1).to_a
-          size.times do |i|
-            pos = (rand * total - i).floor
-            v, template[pos] = template[pos], template[-1]
-          end
-        else
-          size.times do 
-            pos = nil
-            while pos.nil? 
-              pos = (rand * total).floor
-              if p.include? pos
-                pos = nil
-              end
-            end
-            p << pos
-          end
-        end
-
+        p = Misc.random_sample_in_range(total, size)
         score(p.sort, total, missing).abs
       end
     end
@@ -184,7 +165,7 @@ module OrderedList
     set = Set.new(set) unless Set === set
     hits = []
     list.each_with_index do |e,i|
-      hits << i if set.include? e
+      hits << i + 1 if set.include? e
     end
     hits
   end
@@ -210,24 +191,112 @@ module OrderedList
     permutations = RandomWalk.permutations(set.length, self.length, options[:missing], options[:permutations])
     RandomWalk.pvalue(permutations, score)
   end
+
+  def pvalue_inline(set, cutoff, options = {})
+    set = Set.new(set.compact) unless Set === set
+    options = Misc.add_defaults options, :permutations => 10000, :missing => 0
+    permutations, missing = Misc.process_options options, :permutations, :missing
+
+    hits = hits(set)
+
+    return 1.0 if hits.empty?
+
+    target_score = RandomWalk.score(hits.sort, self.length, 0)
+
+    max = (permutations.to_f * cutoff).ceil
+
+    size = set.length
+    total = self.length
+    better_permutation_score_count = 0
+    if size == 0
+      1.0
+    else
+      (1..permutations).each do
+        p = Set.new
+
+        if size > total / 10
+          template = (0..total - 1).to_a
+          size.times do |i|
+            pos = (rand * total - i).floor
+            v, template[pos] = template[pos], template[-1]
+          end
+        else
+          size.times do 
+            pos = nil
+            while pos.nil? 
+              pos = (rand * total).floor
+              if p.include? pos
+                pos = nil
+              end
+            end
+            p << pos
+          end
+        end
+
+        permutation_score = RandomWalk.score(p.sort, total, missing).abs
+        if permutation_score > target_score
+          better_permutation_score_count += 1
+        end
+
+        return 1.0 if better_permutation_score_count > max
+      end
+      better_permutation_score_count.to_f / permutations
+    end
+  end
 end
 
 module TSV
 
-  def self.rank_enrichment_for_list(list, hits, options = {})
+  def self.rank_enrichment_for_list_old(list, hits, options = {})
     list.extend OrderedList
-    list.pvalue((hits & list), options)
+    list.pvalue(hits, options)
+  end
+
+  def self.rank_enrichment_for_list(list, hits, options = {})
+    cutoff = Misc.process_options options, :cutoff
+    list.extend OrderedList
+    if cutoff
+      list.pvalue_inline(hits, cutoff, options)
+    else
+      list.pvalue(hits, options)
+    end
+  end
+
+  def self.rank_enrichment_old(tsv, list, options = {})
+    res = TSV.setup({}, :cast => :to_f, :type => :single, :key_field => tsv.key_field, :fields => ["p-value"]) if tsv.fields
+
+    tsv.with_monitor do
+      tsv.with_unnamed do
+        tsv.through do |key, values|
+          pvalue = rank_enrichment_for_list(list, values, options)
+          res[key] = pvalue #, values.respond_to?(:subset) ? values.subset(list) :  values - list]
+        end
+      end
+    end
+
+    FDR.adjust_hash! res if options[:fdr]
+
+    res
   end
 
   def self.rank_enrichment(tsv, list, options = {})
-    res = TSV.setup({}, :type => :double, :key_field => tsv.key_field, :fields => ["p-value", tsv.fields.first]) if tsv.fields
+    if tsv.fields
+      res = TSV.setup({}, :cast => :to_f, :type => :double, :key_field => tsv.key_field, :fields => ["p-value", tsv.fields.first]) 
+    else
+      res = TSV.setup({}, :cast => :to_f, :type => :double) 
+    end
+
     tsv.with_monitor do
-      tsv.through do |key, values|
-        pvalue = rank_enrichment_for_list(list, values, options)
-        res[key] = [pvalue, values.respond_to?(:subset) ? values.subset(list) :  values - list]
+      tsv.with_unnamed do
+        tsv.through do |key, values|
+          pvalue = rank_enrichment_for_list(list, values, options)
+          res[key] = [pvalue, (values.respond_to?(:subset) ? values.subset(list) :  values - list)]
+        end
       end
     end
+
     FDR.adjust_hash! res, 0 if options[:fdr]
+
     res
   end
 
