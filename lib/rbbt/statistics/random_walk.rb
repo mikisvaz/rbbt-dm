@@ -247,11 +247,6 @@ end
 
 module TSV
 
-  def self.rank_enrichment_for_list_old(list, hits, options = {})
-    list.extend OrderedList
-    list.pvalue(hits, options)
-  end
-
   def self.rank_enrichment_for_list(list, hits, options = {})
     cutoff = Misc.process_options options, :cutoff
     list.extend OrderedList
@@ -260,23 +255,6 @@ module TSV
     else
       list.pvalue(hits, options)
     end
-  end
-
-  def self.rank_enrichment_old(tsv, list, options = {})
-    res = TSV.setup({}, :cast => :to_f, :type => :single, :key_field => tsv.key_field, :fields => ["p-value"]) if tsv.fields
-
-    tsv.with_monitor do
-      tsv.with_unnamed do
-        tsv.through do |key, values|
-          pvalue = rank_enrichment_for_list(list, values, options)
-          res[key] = pvalue #, values.respond_to?(:subset) ? values.subset(list) :  values - list]
-        end
-      end
-    end
-
-    FDR.adjust_hash! res if options[:fdr]
-
-    res
   end
 
   def self.rank_enrichment(tsv, list, options = {})
