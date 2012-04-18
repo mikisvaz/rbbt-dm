@@ -11,6 +11,7 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
   }
   plots=rbbt/plots{
    bar.rb
+   heatmap.rb
   }
   network=rbbt/network{
    paths.rb
