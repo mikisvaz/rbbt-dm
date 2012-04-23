@@ -220,7 +220,7 @@ module TSV
 
       end
 
-      if background
+      if background and not background.empty?
         reset_filters
         pop_filter
       end
