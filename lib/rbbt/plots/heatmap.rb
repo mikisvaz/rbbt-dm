@@ -8,7 +8,7 @@ module Heatmap
     width = 200 + (values.fields.length * 16)
     height = 200 + (values.length * 16)
     size = [width, height].max
-    size = [size, 20000].min
+    size = [size, 5000].min
 
     heatmap_script = <<-EOF 
     #{ take_log ? "data <- log(data)" : ""}
@@ -31,4 +31,24 @@ module Heatmap
     
     filename
   end
+
+  def self.heatmap2(values, filename, options = {})
+    scale, take_log, add_to_height, colors = Misc.process_options options, 
+      :scale, :take_log, :add_to_height, :colors
+
+    width = 200 + (values.fields.length * 16)
+    height = 200 + (values.length * 16)
+    size = [width, height].max
+    size = [size, 20000].min
+
+    heatmap_script = <<-EOF 
+    library(ggplot2);
+
+    EOF
+
+    values.R heatmap_script
+    
+    filename
+  end
+
 end
