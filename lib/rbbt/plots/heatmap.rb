@@ -8,7 +8,7 @@ module Heatmap
     width = 200 + (values.fields.length * 16)
     height = 200 + (values.length * 16)
     size = [width, height].max
-    size = [size, 5000].min
+    size = [size, 10000].min
 
     heatmap_script = <<-EOF 
     #{ take_log ? "data <- log(data)" : ""}
@@ -19,7 +19,16 @@ module Heatmap
     #{ size }, 
     #{ (defined?(add_to_height) and not add_to_height.nil?) ? (size + (add_to_height * 16 * [1, (height.to_f / width)].max).to_i) : size }, 
           'heatmap(as.matrix(data),
-    #{scale ? 'scale="row",' : "scale=\"none\",\n"}
+    #{
+    case scale.to_s
+    when "true", 'row'
+      'scale="row",' 
+    when 'column' 
+      'scale="column",' 
+    when "none", ""
+      'scale="none",'
+    end
+    }
     #{colors.nil? ? "" : "ColSideColors=#{colors},"} 
           hclustfun=my.hclust, 
           )',
