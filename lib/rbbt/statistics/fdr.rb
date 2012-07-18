@@ -31,17 +31,33 @@ module FDR
     adjusted.reverse
   end
 
-  class << self
-    inline do |builder|
-      builder.c <<-EOC
+  inline do |builder|
+
+    builder.prefix  <<-EOC_CODE
+//{{{ Make compatible with 1.9 and 1.8
+#ifndef RUBY_19
+#ifndef RFLOAT_VALUE
+#define RFLOAT_VALUE(v) (RFLOAT(v)->value)
+#endif
+#ifndef RARRAY_PTR
+#define RARRAY_PTR(v) (RARRAY(v)->ptr)
+#endif
+#ifndef RARRAY_LEN
+#define RARRAY_LEN(v) (RARRAY(v)->len)
+#endif
+#endif
+//}}} Make compatible with 1.9 and 1.8
+    EOC_CODE
+
+    c_code = <<-EOC_CODE
         double step_up_fast(VALUE ps, double rate){
            long idx;
-           int total = RARRAY(ps)->len;
-  
+           int total = RARRAY_LEN(ps);
+
            double last_value = 0;
            for (idx = 0; idx < total; idx++){
-             double p  = (double) RFLOAT(rb_ary_entry(ps, idx))->value;
-             
+             double p  = (double) RFLOAT_VALUE(rb_ary_entry(ps, idx));
+
              if (p > rate * (double) (idx + 1) / (double) total){
                 return last_value;
              }
@@ -51,47 +67,47 @@ module FDR
            return last_value;
         }
 
-      EOC
+    EOC_CODE
+    builder.c_singleton c_code
 
-
-      builder.c <<-EOC
-          
+    c_code = <<-EOC_CODE
          VALUE adjust_fast_self(VALUE ps){
            long idx;
-      
-           int total = RARRAY(ps)->len;
+
+           int total = RARRAY_LEN(ps);
 
            VALUE new = rb_ary_new();
 
            double last = 1;
            for (idx = total - 1; idx >= 0 ; idx-- ){
-             double p  = (double) RFLOAT(rb_ary_entry(ps, idx))->value;
+             double p  = (double) RFLOAT_VALUE(rb_ary_entry(ps, idx));
 
-      
+
              p = p * (double) total / (double) (idx + 1);
              if (p > last) p = last;
              last = p;
 
-             RFLOAT(rb_ary_entry(ps, idx))->value = p;
+             RFLOAT_VALUE(rb_ary_entry(ps, idx)) = p;
            }
 
           return ps;
          }
-      EOC
-         
-      builder.c <<-EOC
+    EOC_CODE
+    builder.c_singleton c_code
+
+    c_code = <<-EOC_CODE
          VALUE adjust_fast(VALUE ps){
            long idx;
-      
-           int total = RARRAY(ps)->len;
+
+           int total = RARRAY_LEN(ps);
 
            VALUE new = rb_ary_new();
 
            double last = 1;
            for (idx = total - 1; idx >= 0 ; idx-- ){
-             double p  = (double) RFLOAT(rb_ary_entry(ps, idx))->value;
+             double p  = (double) RFLOAT_VALUE(rb_ary_entry(ps, idx));
 
-      
+
              p = p * (double) total / (double) (idx + 1);
              if (p > last) p = last;
              last = p;
@@ -101,14 +117,17 @@ module FDR
 
            return new;
          }
-      EOC
-    end
+    EOC_CODE
+    builder.c_singleton c_code
+
+    builder
   end
 
+
   class << self
-    alias_method :adjust, :adjust_fast
-    alias_method :adjust!, :adjust_fast_self
-    alias_method :step_up, :step_up_fast
+    alias :adjust :adjust_fast
+    alias :adjust! :adjust_fast_self
+    alias :step_up :step_up_fast
   end
 
   # This will change the values of the floats in situ
@@ -129,4 +148,6 @@ module FDR
   end
 
 end
+
+
 

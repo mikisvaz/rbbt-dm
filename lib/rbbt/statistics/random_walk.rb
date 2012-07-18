@@ -5,32 +5,53 @@ require 'rbbt/util/misc'
 
 module RandomWalk
 
-  class << self
-      inline do |builder|
+  inline do |builder|
 
-        builder.c_raw <<-'EOC'
+    builder.prefix  <<-EOC_CODE
+#include <math.h>
+//{{{ Make compatible with 1.9 and 1.8
+#ifndef RUBY_19
+#ifndef RFLOAT_VALUE
+#define RFLOAT_VALUE(v) (RFLOAT(v)->value)
+#endif
+#ifndef RARRAY_PTR
+#define RARRAY_PTR(v) (RARRAY(v)->ptr)
+#endif
+#ifndef RARRAY_LEN
+#define RARRAY_LEN(v) (RARRAY(v)->len)
+#endif
+#endif
+//}}} Make compatible with 1.9 and 1.8
+    EOC_CODE
+
+
+    builder.c_raw_singleton <<-'EOC'
     double weight(int position, int mean){
         double rel_pos = (double) abs(position - mean) / mean; 
         double weight =  0.3 *  0.5 * rel_pos +  0.7 * (exp(30*rel_pos)/exp(30));
         return(weight);
     }
-        EOC
+    EOC
 
-        builder.c <<-'EOC'
+    builder.c_singleton <<-'EOC'
     double fast_score_scale(VALUE positions, int total, int missing){
       int idx;
-    
+
       int mean = total / 2;
+      int position;
+      double penalty;
+      double max_top, max_bottom;
+      double total_weights = 0;
 
       VALUE rel_q = rb_ary_new();
       VALUE rel_l = rb_ary_new();
-      
+
       rb_ary_push(rel_q,rb_float_new(0));
 
       // Rescale positions and accumulate weights
-      double total_weights = 0;
-      for (idx = 0; idx < RARRAY(positions)->len; idx++){
-        int position = FIX2INT(rb_ary_entry(positions, idx));
+
+      for (idx = 0; idx < RARRAY_LEN(positions); idx++){
+        position = FIX2INT(rb_ary_entry(positions, idx));
 
         rb_ary_push(rel_l, rb_float_new((double) position / total));
 
@@ -39,29 +60,28 @@ module RandomWalk
       }
 
       // Add penalty for missing genes
-      double penalty = missing * weight(mean * 0.8, mean);
+      penalty = missing * weight(mean * 0.8, mean);
       total_weights  = total_weights + penalty;
-      
+
       // Traverse list and get extreme values
-      double max_top, max_bottom;
       max_top = max_bottom = 0;
-      for (idx = 0; idx < RARRAY(positions)->len; idx++){
-        double top    = RFLOAT(rb_ary_entry(rel_q, idx + 1))->value / total_weights -
-                        RFLOAT(rb_ary_entry(rel_l, idx))->value;
-        double bottom = - (penalty + RFLOAT(rb_ary_entry(rel_q, idx))->value) / total_weights +
-                        RFLOAT(rb_ary_entry(rel_l, idx))->value;
+      for (idx = 0; idx < RARRAY_LEN(positions); idx++){
+        double top    = RFLOAT_VALUE(rb_ary_entry(rel_q, idx + 1)) / total_weights -
+                        RFLOAT_VALUE(rb_ary_entry(rel_l, idx));
+        double bottom = - (penalty + RFLOAT_VALUE(rb_ary_entry(rel_q, idx))) / total_weights +
+                        RFLOAT_VALUE(rb_ary_entry(rel_l, idx));
 
         if (top > max_top)       max_top    = top;
         if (bottom > max_bottom) max_bottom = bottom;
       }
-        
+
      if (max_top > max_bottom) return max_top;
      else                      return -max_bottom;
     }
-        EOC
+    EOC
 
-      end
   end
+
 
   class << self
     alias score fast_score_scale

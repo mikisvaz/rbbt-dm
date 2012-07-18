@@ -7,6 +7,10 @@ require 'rbbt/entity'
 module Hypergeometric
   class << self
     inline do |builder|
+      builder.prefix <<-EOC
+#include <math.h>
+      EOC
+      
       builder.c_raw <<-EOC
 /**
  * Compute log(k!)
@@ -66,16 +70,18 @@ double hypergeometric(double total, double support, double list, double found)
 	double other = total - support;
 
 	double top = list;
-	if(support < list){
-		top = support;
-	}
-
 	double log_n_choose_k = lBinom(total,list);
 
 	double lfoo = lBinom(support,top) + lBinom(other, list-top);
 	
 	double sum = 0;
   int i;
+
+	if(support < list){
+		top = support;
+	}
+
+
 	for (i = (int)top; i >= found; i-- )
 	{
 		sum = sum + exp(lfoo - log_n_choose_k);
