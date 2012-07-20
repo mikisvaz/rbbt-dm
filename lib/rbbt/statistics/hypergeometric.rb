@@ -5,13 +5,12 @@ require 'rbbt/statistics/fdr'
 require 'rbbt/entity'
 
 module Hypergeometric
-  class << self
-    inline do |builder|
-      builder.prefix <<-EOC
+  inline do |builder|
+    builder.prefix <<-EOC
 #include <math.h>
-      EOC
-      
-      builder.c_raw <<-EOC
+    EOC
+
+    builder.c_raw_singleton <<-EOC
 /**
  * Compute log(k!)
  * @param k The value k.
@@ -19,13 +18,13 @@ module Hypergeometric
  */
 double lFactorial(double k)
 {
-	double r = 0;
-	int i;
-	for(i=2 ; i<=(int)k ; i++)
-	{
-		r = r + (double)(log((double)i));
-	}
-	return r;
+  double r = 0;
+  int i;
+  for(i=2 ; i<=(int)k ; i++)
+  {
+    r = r + (double)(log((double)i));
+  }
+  return r;
 }
 
 
@@ -38,25 +37,25 @@ double lFactorial(double k)
  */
 double lBinom(double n, double k)
 {
-	long i;
-	double r = 0;
-	
-	if(n > n-k){
-		k = n-k;
-	}
+  long i;
+  double r = 0;
 
-	for(i = (long)n ; i> (n-k) ; i--)
-	{
-		r = r + log((double)i);
-	}
-		
-	r = r - lFactorial(k);
-	
-	return r;
+  if(n > n-k){
+    k = n-k;
+  }
+
+  for(i = (long)n ; i> (n-k) ; i--)
+  {
+    r = r + log((double)i);
+  }
+
+  r = r - lFactorial(k);
+
+  return r;
 }
-  EOC
-  
-      builder.c <<-EOC
+    EOC
+
+    builder.c_singleton <<-EOC
 /**
 *  * Compute the Hypergeometric accumulated value.
 *  * @param total       => total size
@@ -67,33 +66,32 @@ double lBinom(double n, double k)
 *  */
 double hypergeometric(double total, double support, double list, double found)
 {
-	double other = total - support;
+  double other = total - support;
 
-	double top = list;
-	double log_n_choose_k = lBinom(total,list);
+  double top = list;
+  double log_n_choose_k = lBinom(total,list);
 
-	double lfoo = lBinom(support,top) + lBinom(other, list-top);
-	
-	double sum = 0;
+  double lfoo = lBinom(support,top) + lBinom(other, list-top);
+
+  double sum = 0;
   int i;
 
-	if(support < list){
-		top = support;
-	}
+  if(support < list){
+    top = support;
+  }
 
 
-	for (i = (int)top; i >= found; i-- )
-	{
-		sum = sum + exp(lfoo - log_n_choose_k);
-		if ( i > found)
-		{
-			lfoo = lfoo + log(i / (support - i+1)) +  log( (other - list + i) / (list-i+1)  );
-		}
-	}
-	return sum;
+  for (i = (int)top; i >= found; i-- )
+  {
+    sum = sum + exp(lfoo - log_n_choose_k);
+    if ( i > found)
+    {
+      lfoo = lfoo + log(i / (support - i+1)) +  log( (other - list + i) / (list-i+1)  );
+    }
+  }
+  return sum;
 }
-      EOC
-    end
+    EOC
   end
 end
 
