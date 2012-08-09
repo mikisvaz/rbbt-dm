@@ -242,7 +242,7 @@ module TSV
       pvalues.delete_if{|k, pvalue| pvalue > options[:cutoff] } if options[:cutoff]
 
       if add_keys
-        tsv = TSV.setup(pvalues.keys, :key_field => fields, :fields => [], :type => :double)
+        tsv = TSV.setup(pvalues.keys.collect{|k| k.dup}, :key_field => fields, :fields => [], :type => :double)
 
         tsv.add_field 'p-value' do |annot, values|
           [pvalues[annot]]
