@@ -3,8 +3,8 @@ require 'rbbt/tsv'
 require 'rbbt/persist'
 require 'rbbt/statistics/fdr'
 require 'rbbt/entity'
-#require 'distribution'
-#require 'distribution/hypergeometric'
+require 'distribution'
+require 'distribution/hypergeometric'
 
 module Hypergeometric
   inline do |builder|
@@ -248,7 +248,8 @@ module TSV
         elems = elems.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq if rename
         count = elems.length
         next if count < options[:min_support] or not counts.include? annotation
-        pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, total, counts[annotation],  count)
+        pvalues[annotation] = 1 - Distribution::Hypergeometric.cdf(count, counts[annotation], total, tsv_size)
+        #pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, total, counts[annotation],  count)
       end
 
       FDR.adjust_hash! pvalues if options[:fdr]
