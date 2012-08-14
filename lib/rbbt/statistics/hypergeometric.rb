@@ -3,6 +3,8 @@ require 'rbbt/tsv'
 require 'rbbt/persist'
 require 'rbbt/statistics/fdr'
 require 'rbbt/entity'
+#require 'distribution'
+#require 'distribution/hypergeometric'
 
 module Hypergeometric
   inline do |builder|
@@ -64,6 +66,8 @@ double lBinom(double n, double k)
 *  * @param found       => support
 *  * @return The result
 *  */
+        //pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
+        //["200204", 2141, 15, 125, 3, 1.37320769558675e-188, ["Q05193", "P54762", "Q12923"]]
 double hypergeometric(double total, double support, double list, double found)
 {
   double other = total - support;
@@ -152,9 +156,11 @@ module TSV
   end
 
   def enrichment(list, fields = nil, options = {})
-    background = options.delete :background
+    options = Misc.add_defaults options, :skip_missing => true, :background => nil
+    background, skip_missing = Misc.process_options options, :background, :skip_missing
 
-    if background and not background.empty?
+
+    if Array === background and not background.empty?
       filter
       add_filter(:key, background)
       if defined? AnnotatedArray and AnnotatedArray === list
@@ -177,8 +183,16 @@ module TSV
       selected = select :key => list.uniq
 
       tsv_size = keys.length
-      total = selected.keys.length
-      Log.debug "Found #{total} of #{list.length} entities"
+      found = selected.keys.length
+      Log.debug "Found #{found} of #{list.length} entities"
+
+      if skip_missing
+        total = found
+        Log.debug "Using #{ found } as sample size; skipping missing"
+      else
+        total = list.uniq.length
+        Log.debug "Using #{ list.length } as sample size"
+      end
 
       counts = annotation_counts fields, options[:persist], :rename => rename
 
@@ -224,7 +238,7 @@ module TSV
 
       end
 
-      if background and not background.empty?
+      if Array === background and not background.empty?
         reset_filters
         pop_filter
       end
@@ -234,7 +248,7 @@ module TSV
         elems = elems.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq if rename
         count = elems.length
         next if count < options[:min_support] or not counts.include? annotation
-        pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
+        pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, total, counts[annotation],  count)
       end
 
       FDR.adjust_hash! pvalues if options[:fdr]
@@ -284,5 +298,4 @@ module Entity
     end
   end
 end
-
 
