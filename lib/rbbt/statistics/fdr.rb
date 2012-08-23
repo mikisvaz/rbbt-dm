@@ -135,12 +135,21 @@ module FDR
     keys = []
     values = []
 
-    data.collect{|key, value| [key, field.nil? ? value : value[field]] }.sort{|a,b| 
+    if data.respond_to? :unnamed
+      unnamed = data.unnamed 
+      data.unnamed = true
+    end
+
+    data.collect{|key, value| [key, Array === ( v = field.nil? ? value : value[field] ) ? v.first : v] }.sort{|a,b| 
       a[1] <=> b[1]
     }.each{|p|
       keys << p[0]
       values << p[1]
     }
+
+    if data.respond_to? :unnamed
+      data.unnamed = unnamed
+    end
 
     FDR.adjust!(values)
 
