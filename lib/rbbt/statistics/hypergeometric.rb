@@ -1,4 +1,5 @@
 require 'inline'
+require 'rsruby'
 require 'rbbt/tsv'
 require 'rbbt/persist'
 require 'rbbt/statistics/fdr'
@@ -248,7 +249,8 @@ module TSV
         elems = elems.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq if rename
         count = elems.length
         next if count < options[:min_support] or not counts.include? annotation
-        pvalues[annotation] = 1.0 - Distribution::Hypergeometric.cdf(count, counts[annotation], total, tsv_size).to_f
+        pvalues[annotation] = RSRuby.instance.phyper(count, counts[annotation], tsv_size - counts[annotation], total).to_f
+        #pvalues[annotation] = 1.0 - Distribution::Hypergeometric.cdf(count, counts[annotation], total, tsv_size).to_f
         #pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, total, counts[annotation],  count)
       end
 

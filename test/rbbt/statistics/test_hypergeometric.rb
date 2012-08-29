@@ -58,6 +58,7 @@ row7    A    B    Id3
       tsv = TSV.open(filename, :sep => /\s+/)
 
       assert_equal %w(a), tsv.enrichment(%w(row1 row3 row4 row5), "ValueA", :fdr => false, :background => %w(row1 row2 row3 row4 row5 row6 row7)).collect{|annot, values| pvalue = values.first.first.to_f; pvalue < 0.05 ? annot : nil}.compact
+      ddd tsv.enrichment(%w(row3 row4 row5), "ValueA", :fdr => false, :background => %w(row1 row2 row3 row4 row5))
       assert_equal %w(), tsv.enrichment(%w(row1 row3 row4 row5), "ValueA", :fdr => false, :background => %w(row1 row2 row3 row4 row5)).collect{|annot, values| pvalue = values.first.first.to_f; pvalue < 0.05 ? annot : nil}.compact
     end
  
