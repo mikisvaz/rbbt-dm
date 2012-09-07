@@ -69,7 +69,7 @@ double lBinom(double n, double k)
 *  */
         //pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
         //["200204", 2141, 15, 125, 3, 1.37320769558675e-188, ["Q05193", "P54762", "Q12923"]]
-double hypergeometric(double total, double support, double list, double found)
+double hypergeometric_c(double total, double support, double list, double found)
 {
   double other = total - support;
 
@@ -97,6 +97,10 @@ double hypergeometric(double total, double support, double list, double found)
   return sum;
 }
     EOC
+  end
+
+  def hypergeometric(total, support, list, found)
+    RSRuby.instance.phyper(found, support, total - support, total, false).to_f
   end
 end
 
