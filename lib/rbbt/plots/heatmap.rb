@@ -15,7 +15,7 @@ module Heatmap
         my.hclust <- function(d){ hclust(d, method="ward") }; 
         my.hclust <- function(d){ hclust(d) }; 
         rbbt.png_plot(
-          '#{Misc.sanitize_filename(filename)}', 
+          '#{filename}', 
     #{ size }, 
     #{ (defined?(add_to_height) and not add_to_height.nil?) ? (size + (add_to_height * 16 * [1, (height.to_f / width)].max).to_i) : size }, 
           'heatmap(as.matrix(data),

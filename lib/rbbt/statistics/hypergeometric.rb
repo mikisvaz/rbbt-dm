@@ -99,7 +99,7 @@ double hypergeometric_c(double total, double support, double list, double found)
     EOC
   end
 
-  def hypergeometric(total, support, list, found)
+  def self.hypergeometric(total, support, list, found)
     RSRuby.instance.phyper(found, support, total - support, total, false).to_f
   end
 end
