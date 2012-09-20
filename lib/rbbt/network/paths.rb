@@ -1,4 +1,5 @@
 require 'priority_queue'
+
 module Paths
 
   def self.dijkstra(adjacency, start_node, end_node = nil)
@@ -8,15 +9,16 @@ module Paths
     distances = Hash.new { 1.0 / 0.0 } 
     parents = Hash.new                 
 
-    active[start_node] = 0
+    active[start_node] << 0
     best = 1.0 / 0.0
     until active.empty?
-      u, distance = active.delete_min
+      u = active.priorities.first
+      distance = active.shift
       distances[u] = distance
       d = distance + 1
       adjacency[u].each do |v|
         next unless d < distances[v] and d < best # we can't relax this one
-        active[v] = distances[v] = d
+        active[v] << distances[v] = d
         parents[v] = u
         best = d if (String === end_node ? end_node == v : end_node.include?(v))
       end    
@@ -36,23 +38,36 @@ module Paths
     end
   end
 
-  def self.weighted_dijkstra(adjacency, start_node, end_node = nil)
+  def self.extract_path(parents, start_node, end_node)
+    path = [end_node]
+    while not path.last === start_node
+      path << parents[path.last]
+    end
+    path
+  end
+
+  def self.weighted_dijkstra(adjacency, start_node, end_node = nil, threshold = nil, max_steps = nil)
     return nil unless adjacency.include? start_node
 
     active = PriorityQueue.new         
     distances = Hash.new { 1.0 / 0.0 } 
     parents = Hash.new                 
 
-    active[start_node] = 0
+    active[start_node] << 0
     best = 1.0 / 0.0
     until active.empty?
-      u, distance = active.delete_min
+      u = active.priorities.first
+      distance = active.shift
       distances[u] = distance
-      next if not adjacency.include?(u) or adjacency[u].nil? or adjacency[u].empty?
+      path = extract_path(parents, start_node, u)
+      next if path.length > max_steps if max_steps 
+      next if not adjacency.include?(u) or adjacency[u].nil? or adjacency[u].empty? 
       Misc.zip_fields(adjacency[u]).each do |v,node_dist|
+        next if threshold and node_dist > threshold
         d = distance + node_dist
         next unless d < distances[v] and d < best # we can't relax this one
-        active[v] = distances[v] = d
+        active[v] << d
+        distances[v] = d
         parents[v] = u
         best = d if (String === end_node ? end_node == v : end_node.include?(v))
       end    
@@ -61,11 +76,7 @@ module Paths
     if end_node
       end_node = (end_node & parents.keys).first unless String === end_node
       return nil if not parents.include? end_node
-      path = [end_node]
-      while not path.last === start_node
-        path << parents[path.last]
-      end
-      path
+      extract_path(parents, start_node, end_node)
     else
       parents
     end
@@ -78,16 +89,17 @@ module Paths
     distances = Hash.new { 1.0 / 0.0 } 
     parents = Hash.new                 
 
-    active[start_node] = 0
+    active[start_node] << 0
     best = 1.0 / 0.0
     until active.empty?
-      u, distance = active.delete_min
+      u = active.priorities.first
+      distance = active.shift
       distances[u] = distance
       next if not adjacency.include?(u) or adjacency[u].nil? or adjacency[u].empty?
       Misc.zip_fields(adjacency[u]).each do |v,node_dist|
         d = distance + (node_dist * (l + rand))
         next unless d < distances[v] and d < best # we can't relax this one
-        active[v] = distances[v] = d
+        active[v] << distances[v] = d
         parents[v] = u
         best = d if (String === end_node ? end_node == v : end_node.include?(v))
       end    
@@ -109,14 +121,14 @@ end
 
 module Entity
   module Adjacent
-    def path_to(adjacency, entities)
+    def path_to(adjacency, entities, threshold = nil, max_steps = nil)
       if Array === self
-        self.collect{|gene| gene.path_to(adjacency, entities)}
+        self.collect{|gene| gene.path_to(adjacency, entities, threshold, max_steps)}
       else
         if adjacency.type == :flat
           Paths.dijkstra(adjacency, self, entities)
         else
-          Paths.weighted_dijkstra(adjacency, self, entities)
+          Paths.weighted_dijkstra(adjacency, self, entities, threshold, max_steps)
         end
       end
     end

@@ -6,7 +6,7 @@ require 'set'
 
 
 class TestNetwork < Test::Unit::TestCase
-  def test_dijsktra
+  def _test_dijsktra
     string = STRING.protein_protein.tsv :persist => false, :fields => ["Interactor Ensembl Protein ID"], :type => :flat 
     string.unnamed = true
 
@@ -22,11 +22,11 @@ class TestNetwork < Test::Unit::TestCase
 
   def test_weighted_dijsktra
     string = STRING.protein_protein.tsv 
+    string.unnamed = true
 
     string.process "Score" do |scores|
       scores.collect{|score| 1000 - score.to_i}
     end
-    string.unnamed = true
 
     start_node = "ENSP00000256078"
     end_node = "ENSP00000306245"
@@ -45,7 +45,7 @@ class TestNetwork < Test::Unit::TestCase
  
   end
 
-  def test_random_weighted_dijsktra
+  def _test_random_weighted_dijsktra
     string = STRING.protein_protein.tsv 
 
     string.process "Score" do |scores|
