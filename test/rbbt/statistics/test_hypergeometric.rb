@@ -5,7 +5,7 @@ require 'test/unit'
 class TestHypergeometric < Test::Unit::TestCase
 
   def test_hypergeometric
-    assert Hypergeometric.hypergeometric(100, 20, 15,13) < 0.05
+    assert Hypergeometric.hypergeometric(100, 20, 15, 13) < 0.0005
   end
 
   def test_annotation_counts
