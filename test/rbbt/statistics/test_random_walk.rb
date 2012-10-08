@@ -9,8 +9,9 @@ class TestRandomWalk < Test::Unit::TestCase
 
     puts list.pvalue((1..100).to_a)
     puts list.pvalue([100, 200, 300, 400, 500])
-    puts list.pvalue_inline([100, 200, 300, 400, 500], 0.05)
+
     puts list.pvalue_inline((1..100).to_a, 0.05)
+    puts list.pvalue_inline([100, 200, 300, 400, 500], 0.05)
   end
 end
 

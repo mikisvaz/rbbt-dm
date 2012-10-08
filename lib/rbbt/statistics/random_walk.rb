@@ -24,6 +24,32 @@ module RandomWalk
 //}}} Make compatible with 1.9 and 1.8
     EOC_CODE
 
+    builder.c_singleton <<-'EOC'
+    void sample_without_replacement ( int populationSize,    int sampleSize,       VALUE positions) {
+        // Use Knuth's variable names
+        int n = sampleSize;
+        int N = populationSize;
+
+        int t = 0; // total input records dealt with
+        int m = 0; // number of items selected so far
+        double u;
+
+        while (m < n)
+        {
+            u = (double) rand() / ((double) RAND_MAX + 1.0); 
+
+            if ( (N - t)*u >= n - m )
+            {
+                t++;
+            }
+            else
+            {
+                rb_ary_push(positions, rb_int_new(t));
+                t++; m++;
+            }
+        }
+    }
+    EOC
 
     builder.c_raw_singleton <<-'EOC'
     double weight(int position, int mean){
@@ -181,6 +207,12 @@ module RandomWalk
 end
 
 module OrderedList
+
+  def self.setup(list)
+    list.extend OrderedList
+    list
+  end
+
   def self.hits(list, set)
     set = Set.new(set) unless Set === set
     hits = []
@@ -197,6 +229,11 @@ module OrderedList
 
   def hits(set)
     OrderedList.hits(self, set)
+  end
+
+  def score(set)
+    hits = hits(set)
+    RandomWalk.score(hits.sort, self.length, 0)
   end
 
   def draw_hits(set, filename = nil, options = {})
@@ -222,45 +259,30 @@ module OrderedList
     return 1.0 if hits.empty?
 
     target_score = RandomWalk.score(hits.sort, self.length, 0)
+    target_score_abs = target_score.abs
 
     max = (permutations.to_f * cutoff).ceil
 
     size = set.length
     total = self.length
-    better_permutation_score_count = 0
+    better_permutation_score_count = 1
     if size == 0
       1.0
     else
       (1..permutations).each do
-        p = Set.new
-
-        if size > total / 10
-          template = (0..total - 1).to_a
-          size.times do |i|
-            pos = (rand * total - i).floor
-            v, template[pos] = template[pos], template[-1]
-          end
-        else
-          size.times do 
-            pos = nil
-            while pos.nil? 
-              pos = (rand * total).floor
-              if p.include? pos
-                pos = nil
-              end
-            end
-            p << pos
-          end
-        end
+        p= []
+        RandomWalk.sample_without_replacement(total, size, p)
 
         permutation_score = RandomWalk.score(p.sort, total, missing).abs
-        if permutation_score > target_score
+        if permutation_score.abs > target_score_abs
           better_permutation_score_count += 1
         end
 
         return 1.0 if better_permutation_score_count > max
       end
-      better_permutation_score_count.to_f / permutations
+      p = better_permutation_score_count.to_f / permutations
+      p = -p if target_score < 0
+      p
     end
   end
 end
