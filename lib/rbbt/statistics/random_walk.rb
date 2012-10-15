@@ -9,6 +9,7 @@ module RandomWalk
 
     builder.prefix  <<-EOC_CODE
 #include <math.h>
+#include <time.h>
 //{{{ Make compatible with 1.9 and 1.8
 #ifndef RUBY_19
 #ifndef RFLOAT_VALUE
@@ -34,6 +35,7 @@ module RandomWalk
         int m = 0; // number of items selected so far
         double u;
 
+        //srand ( (unsigned)time ( NULL ) );
         while (m < n)
         {
             u = (double) rand() / ((double) RAND_MAX + 1.0); 
@@ -52,25 +54,25 @@ module RandomWalk
     EOC
 
     builder.c_raw_singleton <<-'EOC'
-    double weight(int position, int mean){
-        double rel_pos = (double) abs(position - mean) / mean; 
+    double fitted_weight(int position, int medium){
+        double rel_pos = (double) abs(position - medium) / medium; 
         double weight =  0.3 *  0.5 * rel_pos +  0.7 * (exp(30*rel_pos)/exp(30));
         return(weight);
     }
     EOC
 
     builder.c_singleton <<-'EOC'
-    double fast_score_scale(VALUE positions, int total, int missing){
+    double score_fitted_weight(VALUE positions, int total, int missing){
       int idx;
 
-      int mean = total / 2;
+      int medium = total / 2;
       int position;
       double penalty;
       double max_top, max_bottom;
-      double total_weights = 0;
+      double hit_weights = 0;
 
-      VALUE rel_q = rb_ary_new();
       VALUE rel_l = rb_ary_new();
+      VALUE rel_q = rb_ary_new();
 
       rb_ary_push(rel_q,rb_float_new(0));
 
@@ -81,20 +83,73 @@ module RandomWalk
 
         rb_ary_push(rel_l, rb_float_new((double) position / total));
 
-        total_weights += weight(position, mean);
-        rb_ary_push(rel_q, rb_float_new(total_weights));
+        hit_weights += fitted_weight(position, medium);
+        rb_ary_push(rel_q, rb_float_new(hit_weights));
       }
 
       // Add penalty for missing genes
-      penalty = missing * weight(mean * 0.8, mean);
-      total_weights  = total_weights + penalty;
+      penalty = missing * fitted_weight(medium * 0.8, medium);
+      hit_weights  = hit_weights + penalty;
 
-      // Traverse list and get extreme values
+      // Traverse list and get extreme values of:
+      // Proportion of weight covered - Proportion of hits covered
+
       max_top = max_bottom = 0;
       for (idx = 0; idx < RARRAY_LEN(positions); idx++){
-        double top    = RFLOAT_VALUE(rb_ary_entry(rel_q, idx + 1)) / total_weights -
+        double top    = RFLOAT_VALUE(rb_ary_entry(rel_q, idx + 1)) / hit_weights -
                         RFLOAT_VALUE(rb_ary_entry(rel_l, idx));
-        double bottom = - (penalty + RFLOAT_VALUE(rb_ary_entry(rel_q, idx))) / total_weights +
+        double bottom = - (penalty + RFLOAT_VALUE(rb_ary_entry(rel_q, idx))) / hit_weights +
+                        RFLOAT_VALUE(rb_ary_entry(rel_l, idx));
+
+        if (top > max_top)       max_top    = top;
+        if (bottom > max_bottom) max_bottom = bottom;
+      }
+
+     if (max_top > max_bottom) return max_top;
+     else                      return -max_bottom;
+    }
+    EOC
+
+
+    builder.c_singleton <<-'EOC'
+    double score_custom_weights(VALUE positions, VALUE weights, int total_weights, int total, int missing){
+      int idx;
+
+      int medium = total / 2;
+      int position;
+      double penalty;
+      double max_top, max_bottom;
+      double hit_weights = 0;
+
+      VALUE rel_l = rb_ary_new();
+      VALUE rel_q = rb_ary_new();
+
+      rb_ary_push(rel_q,rb_float_new(0));
+
+      // Rescale positions and accumulate weights
+
+      for (idx = 0; idx < RARRAY_LEN(positions); idx++){
+        position = FIX2INT(rb_ary_entry(positions, idx));
+
+        rb_ary_push(rel_l, rb_float_new((double) position / total));
+
+        hit_weights += rb_ary_entry(weights, position);
+        rb_ary_push(rel_q, rb_float_new(hit_weights / total_weights));
+      }
+
+      // Add penalty for missing genes
+      penalty = missing * rb_ary_entry(weights, (int) medium * 0.8);
+      hit_weights  = hit_weights + penalty;
+      hit_weights = hit_weights / total_weights;
+
+      // Traverse list and get extreme values of:
+      // Proportion of weight covered - Proportion of hits covered
+
+      max_top = max_bottom = 0;
+      for (idx = 0; idx < RARRAY_LEN(positions); idx++){
+        double top    = RFLOAT_VALUE(rb_ary_entry(rel_q, idx + 1)) / hit_weights -
+                        RFLOAT_VALUE(rb_ary_entry(rel_l, idx));
+        double bottom = - (penalty + RFLOAT_VALUE(rb_ary_entry(rel_q, idx))) / hit_weights +
                         RFLOAT_VALUE(rb_ary_entry(rel_l, idx));
 
         if (top > max_top)       max_top    = top;
@@ -108,9 +163,9 @@ module RandomWalk
 
   end
 
-
   class << self
-    alias score fast_score_scale
+    alias score score_fitted_weight
+    alias score_weights score_custom_weights
   end
 
   def self.combine(up, down)
@@ -207,9 +262,16 @@ module RandomWalk
 end
 
 module OrderedList
+  attr_accessor :weights, :total_weights
 
-  def self.setup(list)
+  def self.setup(list, weights = nil, total_weights = nil)
     list.extend OrderedList
+    list.weights = weights
+    if weights and total_weights.nil?
+      list.total_weights = Misc.sum(weights)
+    else
+      list.total_weights = total_weights
+    end
     list
   end
 
@@ -217,7 +279,7 @@ module OrderedList
     set = Set.new(set) unless Set === set
     hits = []
     list.each_with_index do |e,i|
-      hits << i + 1 if set.include? e
+      hits << i + 1 if set.include? e # count from 1
     end
     hits
   end
@@ -236,20 +298,28 @@ module OrderedList
     RandomWalk.score(hits.sort, self.length, 0)
   end
 
+  def score_weights(set)
+    raise "No weight defined" if @weights.nil?
+    @total_weights ||= Misc.sum(@weights)
+    hits = hits(set)
+    RandomWalk.score_weights(hits.sort, @weights, @total_weights, self.length, 0)
+  end
+
+
   def draw_hits(set, filename = nil, options = {})
     OrderedList.draw_hits(self, set, filename, options)
   end
 
-  def pvalue(set, options = {})
-    set = Set.new(set.compact) unless Set === set
-    options = Misc.add_defaults options, :permutations => 10000, :missing => 0
-    hits = hits(set)
-    score = RandomWalk.score(hits.sort, self.length, 0)
-    permutations = RandomWalk.permutations(set.length, self.length, options[:missing], options[:permutations])
-    RandomWalk.pvalue(permutations, score)
-  end
+  #def pvalue(set, options = {})
+  #  set = Set.new(set.compact) unless Set === set
+  #  options = Misc.add_defaults options, :permutations => 10000, :missing => 0
+  #  hits = hits(set)
+  #  score = RandomWalk.score(hits.sort, self.length, 0)
+  #  permutations = RandomWalk.permutations(set.length, self.length, options[:missing], options[:permutations])
+  #  RandomWalk.pvalue(permutations, score)
+  #end
 
-  def pvalue_inline(set, cutoff, options = {})
+  def pvalue(set, cutoff = 0.1, options = {})
     set = Set.new(set.compact) unless Set === set
     options = Misc.add_defaults options, :permutations => 10000, :missing => 0
     permutations, missing = Misc.process_options options, :permutations, :missing
@@ -285,6 +355,46 @@ module OrderedList
       p
     end
   end
+
+  def pvalue_weights(set, cutoff = 0.1, options = {})
+    raise "No weight defined" if @weights.nil?
+    @total_weights ||= Misc.sum(@weights)
+
+    set = Set.new(set.compact) unless Set === set
+    options = Misc.add_defaults options, :permutations => 10000, :missing => 0
+    permutations, missing = Misc.process_options options, :permutations, :missing
+
+    hits = hits(set)
+
+    return 1.0 if hits.empty?
+
+    target_score = RandomWalk.score_weights(hits.sort, @weights, @total_weights, self.length, 0)
+    target_score_abs = target_score.abs
+
+    max = (permutations.to_f * cutoff).ceil
+
+    size = set.length
+    total = self.length
+    better_permutation_score_count = 1
+    if size == 0
+      1.0
+    else
+      (1..permutations).each do
+        p= []
+        RandomWalk.sample_without_replacement(total, size, p)
+
+        permutation_score = RandomWalk.score_weights(p.sort, @weights, @total_weights, total, missing).abs
+        if permutation_score.abs > target_score_abs
+          better_permutation_score_count += 1
+        end
+
+        return 1.0 if better_permutation_score_count > max
+      end
+      p = better_permutation_score_count.to_f / permutations
+      p = -p if target_score < 0
+      p
+    end
+  end
 end
 
 module TSV
@@ -293,7 +403,7 @@ module TSV
     cutoff = Misc.process_options options, :cutoff
     list.extend OrderedList
     if cutoff
-      list.pvalue_inline(hits, cutoff, options)
+      list.pvalue(hits, cutoff, options)
     else
       list.pvalue(hits, options)
     end
