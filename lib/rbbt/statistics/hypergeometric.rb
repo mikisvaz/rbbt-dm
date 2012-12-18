@@ -164,7 +164,6 @@ module TSV
     options = Misc.add_defaults options, :skip_missing => true, :background => nil
     background, skip_missing = Misc.process_options options, :background, :skip_missing
 
-
     if Array === background and not background.empty?
       filter
       add_filter(:key, background)
@@ -254,8 +253,6 @@ module TSV
         count = elems.length
         next if count < options[:min_support] or not counts.include? annotation
         pvalues[annotation] = RSRuby.instance.phyper(count - 1, counts[annotation], tsv_size - counts[annotation], total, false).to_f
-        #pvalues[annotation] = 1.0 - Distribution::Hypergeometric.cdf(count, counts[annotation], total, tsv_size).to_f
-        #pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, total, counts[annotation],  count)
       end
 
       FDR.adjust_hash! pvalues if options[:fdr]
