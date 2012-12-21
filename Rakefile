@@ -1,5 +1,4 @@
 require 'rubygems'
-require 'rbbt/entity'
 require 'rake'
 
 begin
