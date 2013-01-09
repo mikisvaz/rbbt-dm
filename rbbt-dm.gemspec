@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Miguel Vazquez"]
-  s.date = "2012-12-21"
+  s.date = "2013-01-09"
   s.description = "Data-mining and statistics"
   s.email = "miguel.vazquez@fdi.ucm.es"
   s.extra_rdoc_files = [
@@ -31,7 +31,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.rubygems_version = "1.8.24"
   s.summary = "Data-mining and statistics"
-  s.test_files = ["test/rbbt/statistics/test_fdr.rb", "test/rbbt/statistics/test_hypergeometric.rb", "test/rbbt/statistics/test_random_walk.rb", "test/rbbt/vector/test_model.rb", "test/rbbt/vector/model/test_svm.rb", "test/rbbt/network/test_paths.rb", "test/test_helper.rb"]
+  s.test_files = ["test/rbbt/statistics/test_hypergeometric.rb", "test/rbbt/statistics/test_random_walk.rb", "test/rbbt/statistics/test_fdr.rb", "test/rbbt/network/test_paths.rb", "test/rbbt/vector/test_model.rb", "test/rbbt/vector/model/test_svm.rb", "test/test_helper.rb"]
 
   if s.respond_to? :specification_version then
     s.specification_version = 3
