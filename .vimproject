@@ -22,6 +22,11 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
     svm.rb
    }
   }
+  expression=rbbt/expression{
+   expression.rb
+   matrix.rb
+   signature.rb
+  }
  }
  test=test {
   test_helper.rb
