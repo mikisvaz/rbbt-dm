@@ -77,5 +77,17 @@ module Expression
       end
     end
   end
+
+  def self.top_up(diff_file, cutoff = 0.05)
+    TSV.open(Open.open(diff_file), :cast => :to_f).select("adjusted.p.values"){|p| p > 0 and p < cutoff}
+  end
+
+  def self.top_down(diff_file, cutoff = 0.05)
+    tsv = TSV.open(Open.open(diff_file), :cast => :to_f).select("adjusted.p.values"){|p| p < 0 and p.abs < cutoff}
+    tsv.keys.each do |key|
+      tsv[key] = tsv[key].collect{|v| v.abs}
+    end
+    tsv
+  end
 end
 
