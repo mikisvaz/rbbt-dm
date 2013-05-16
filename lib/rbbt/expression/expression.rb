@@ -6,11 +6,11 @@ module Expression
   extend Workflow
 
   def self.load_matrix(data_file, identifier_file, identifier_format, organism)
+
     log :open_data, "Opening data file"
     data = TSV.open(data_file, :type => :double, :unnamed => true)
 
     organism ||= data.namespace
-
    
     if not (identifier_file.nil? or identifier_format.nil? or data.key_field == identifier_format)
 

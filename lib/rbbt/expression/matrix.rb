@@ -27,6 +27,7 @@ class Matrix
 
   attr_accessor :data, :identifiers, :labels, :key_field, :organism, :samples, :log2, :channel
   def initialize(data, identifiers, labels = nil, key_field = nil, organism = nil, log2 = false, channel = false)
+    data.produce if data.respond_to? :produce
     @data        = data
     @samples     = TSV::Parser.new(Open.open(data)).fields
     @identifiers = identifiers
