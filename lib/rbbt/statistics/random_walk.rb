@@ -433,4 +433,17 @@ module TSV
   def rank_enrichment(list, options = {})
     TSV.rank_enrichment(self, list, options)
   end
+
+  def ranks_for(field)
+    ranks = TSV.setup({}, :key_field => self.key_field, :fields => ["Rank"])
+    sort_by(field, true).each_with_index do |k, i|
+      ranks[k] = i
+    end
+
+    ranks.entity_options = entity_options
+    ranks.entity_templates = entity_templates
+    ranks.namespace = namespace
+
+    ranks
+  end
 end

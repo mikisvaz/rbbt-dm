@@ -5,8 +5,8 @@ module RankProduct
     scores = {}
     log_sizes = signature_sizes.collect{|size| Math::log(size)}
     gene_ranks.each{|gene, positions|
-      scores[gene] = positions.zip(log_sizes).
-        collect{|p| Math::log(p[0]) - p[1]}.    # Take log and substract from size (normalize)
+      scores[gene] = positions.collect{|p| p.nil? or (p.respond_to?(:empty?) and p.empty?) ? signature_sizes.max  : p }.zip(log_sizes).
+        collect{|p| Math::log(p[0]) - p[1]}.   
         inject(0){|acc, v| acc += v  }
     }
     scores
@@ -61,7 +61,10 @@ module TSV
       end
     end
 
-    score = RankProduct.score(positions, fields.collect{ tsv.size })
+    signature_sizes = fields.collect{|field| slice(field).values.select{|v| v and not (v.respond_to?(:empty?) and v.empty?)}.length} 
+
+    #score = RankProduct.score(positions, fields.collect{ tsv.size })
+    score = RankProduct.score(positions, signature_sizes)
 
     score
   end
