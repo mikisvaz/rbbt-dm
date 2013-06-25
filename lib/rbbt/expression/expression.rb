@@ -6,7 +6,6 @@ module Expression
   extend Workflow
 
   def self.load_matrix(data_file, identifier_file, identifier_format, organism)
-
     log :open_data, "Opening data file"
     data = TSV.open(data_file, :type => :double, :unnamed => true)
 
@@ -41,6 +40,8 @@ module Expression
       end
 
       data = new_data
+    else
+      log :ready, "Matrix ready"
     end
 
     data
