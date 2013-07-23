@@ -1,7 +1,9 @@
 require 'inline'
 require 'rsruby'
-require 'rbbt/tsv'
+require 'rbbt'
 require 'rbbt/persist'
+require 'rbbt/persist'
+require 'rbbt/tsv'
 require 'rbbt/statistics/fdr'
 require 'rbbt/entity'
 require 'distribution'
@@ -111,58 +113,50 @@ module TSV
     fields = [fields] if String === fields or Symbol === fields
     rename = options.delete :rename
 
-    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts", :other => { :rename => rename }) do 
-      data ||= Hash.new(0)
+    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts", :other => {:rename => rename}) do 
+      data ||= {}
 
       with_unnamed do
 
         case type
         when :single
           through :key, fields do |key, value|
-            next if value.nil?
-            data[value] += 1
+            next if value.nil? 
+            data[value] ||= []
+            data[value] << key
           end
         when :double
-          if rename
-            Log.debug("Computing annotation counts with rename: #{rename.values.flatten.compact.uniq.sort * ", "} ")
-            through :key, fields do |key, values|
-              next if values.nil?
-              values.flatten.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq.each{|value| data[value] += 1 }
-            end
-          else
-            through :key, fields do |key, values|
-              values.flatten.compact.uniq.each{|value| data[value] += 1}
-            end
+          through :key, fields do |key, values|
+            values.flatten.compact.uniq.each{|value| data[value] ||= []; data[value] << key}
           end
         when :list
           through :key, fields do |key, values|
             next if values.nil?
-            values.compact.uniq.each{|value| data[value] += 1}
+            values.compact.uniq.each{|value| data[value] ||= []; data[value] << key}
           end
         when :flat
-          if rename
-            Log.debug("Computing annotation counts with rename: #{rename.values.flatten.compact.uniq.sort * ", "} ")
-            through :key, fields do |key, values|
-              next if values.nil?
-              values.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq.each{|value| data[value] += 1 }
-            end
-          else
-            through :key, fields do |key, values|
-              next if values.nil?
-              values.compact.uniq.each{|value| data[value] += 1}
-            end
+          through :key, fields do |key, values|
+            next if values.nil?
+            values.compact.uniq.each{|value| data[value] ||= []; data[value] << key}
           end
         end
 
       end
 
-      data
+      if rename
+        Log.debug("Using renames during annotation counts")
+        Hash[*data.keys.zip(data.values.collect{|l| l.collect{|e| rename.include?(e)? rename[e] : e }.uniq.length }).flatten]
+      else
+        Hash[*data.keys.zip(data.values.collect{|l| l.uniq.length}).flatten]
+      end
     end
   end
 
   def enrichment(list, fields = nil, options = {})
     options = Misc.add_defaults options, :skip_missing => true, :background => nil
     background, skip_missing = Misc.process_options options, :background, :skip_missing
+
+    list = list.compact.uniq
 
     if Array === background and not background.empty?
       filter
@@ -174,13 +168,11 @@ module TSV
       end
     end
 
-    list = list.compact.uniq
-
     with_unnamed do
       fields ||= self.fields.first
       options = Misc.add_defaults options, :min_support => 3, :fdr => true, :cutoff => false, :add_keys => true
 
-      add_keys, rename = Misc.process_options options, :add_keys, :rename
+      add_keys, rename, masked = Misc.process_options options, :add_keys, :rename, :masked
 
       Log.debug "Enrichment analysis of field #{fields.inspect} for #{list.length} entities"
 
@@ -194,11 +186,11 @@ module TSV
         total = found
         Log.debug "Using #{ found } as sample size; skipping missing"
       else
-        total = list.uniq.length
+        total = list.length
         Log.debug "Using #{ list.length } as sample size"
       end
 
-      counts = annotation_counts fields, options[:persist], :rename => rename
+      counts = annotation_counts fields, options[:persist], :rename => rename, :masked => masked
 
       annotation_keys = Hash.new
       selected.with_unnamed do
@@ -237,7 +229,6 @@ module TSV
               annotation_keys[value] << key
             }
           end
-
         end
 
       end
@@ -249,6 +240,7 @@ module TSV
 
       pvalues = {}
       annotation_keys.each do |annotation, elems|
+        next if masked.include? annotation
         elems = elems.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq if rename
         count = elems.length
         next if count < options[:min_support] or not counts.include? annotation

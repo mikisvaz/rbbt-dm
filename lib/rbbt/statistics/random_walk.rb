@@ -180,6 +180,7 @@ module RandomWalk
     end
   end
 
+  # Two sided
   def self.score_up_down(up, down, total, missing = 0)
     scores_up   = score(up, total, missing)
     scores_down = score(down, total, missing)
@@ -187,15 +188,30 @@ module RandomWalk
     combine(scores_up, scores_down)
   end
 
-  # Two sided
-  def self.permutations(size, total, missing = 0, times = 10000)
+  def self.permutations(size, total, missing = 0, times = 10_000)
     if size == 0
       [0] * times
     else
       (1..times).collect do
-        p = Misc.random_sample_in_range(total, size)
-        score(p.sort, total, missing).abs
+        p = []
+        sample_without_replacement(total, size, p)
+
+        score(p, total, missing).abs
       end
+    end
+  end
+
+  def self.persisted_permutations(size, total, missing = 0, times = 10_000)
+    repo_file = "/tmp/rw_repo5"
+    repo = Persist.open_tokyocabinet(repo_file, false, :float_array)
+    key = Misc.digest([size, total, missing, times].inspect)
+    if repo[key]
+      repo[key]
+    else
+      repo.write
+      repo[key] = permutations(size, total, missing, times)
+      repo.read
+      repo[key]
     end
   end
 
@@ -208,6 +224,7 @@ module RandomWalk
   def self.pvalue(permutations, score)
     score = score.abs
     permutations.inject(0){|acc, per| 
+
       acc += 1 if per > score
       acc
     }.to_f / permutations.length
@@ -322,37 +339,44 @@ module OrderedList
   def pvalue(set, cutoff = 0.1, options = {})
     set = Set.new(set.compact) unless Set === set
     options = Misc.add_defaults options, :permutations => 10000, :missing => 0
-    permutations, missing = Misc.process_options options, :permutations, :missing
+    permutations, missing, persist_permutations = Misc.process_options options, :permutations, :missing, :persist_permutations
 
     hits = hits(set)
-
+   
     return 1.0 if hits.empty?
 
-    target_score = RandomWalk.score(hits.sort, self.length, 0)
-    target_score_abs = target_score.abs
+    target_score = RandomWalk.score(hits.sort, self.length, missing)
 
-    max = (permutations.to_f * cutoff).ceil
-
-    size = set.length
-    total = self.length
-    better_permutation_score_count = 1
-    if size == 0
-      1.0
+    if persist_permutations
+      permutations = RandomWalk.persisted_permutations(set.length, self.length, missing, permutations)
+      RandomWalk.pvalue(permutations, target_score)
     else
-      (1..permutations).each do
-        p= []
-        RandomWalk.sample_without_replacement(total, size, p)
+      # P-value computation
+      target_score_abs = target_score.abs
 
-        permutation_score = RandomWalk.score(p.sort, total, missing).abs
-        if permutation_score.abs > target_score_abs
-          better_permutation_score_count += 1
+      max = (permutations.to_f * cutoff).ceil
+
+      size = set.length
+      total = self.length
+      better_permutation_score_count = 1
+      if size == 0
+        1.0
+      else
+        (1..permutations).each do
+          p= []
+          RandomWalk.sample_without_replacement(total, size, p)
+
+          permutation_score = RandomWalk.score(p.sort, total, missing).abs
+          if permutation_score.abs > target_score_abs
+            better_permutation_score_count += 1
+          end
+
+          return 1.0 if better_permutation_score_count > max
         end
-
-        return 1.0 if better_permutation_score_count > max
+        p = better_permutation_score_count.to_f / permutations
+        p = -p if target_score < 0
+        p
       end
-      p = better_permutation_score_count.to_f / permutations
-      p = -p if target_score < 0
-      p
     end
   end
 
@@ -400,12 +424,12 @@ end
 module TSV
 
   def self.rank_enrichment_for_list(list, hits, options = {})
-    cutoff = Misc.process_options options, :cutoff
+    cutoff = options[:cutoff]
     list.extend OrderedList
     if cutoff
       list.pvalue(hits, cutoff, options)
     else
-      list.pvalue(hits, options)
+      list.pvalue(hits, nil, options)
     end
   end
 
@@ -416,10 +440,11 @@ module TSV
       res = TSV.setup({}, :cast => :to_f, :type => :double) 
     end
 
+    list = list.clean_annotations if list.respond_to? :clean_annotations
     tsv.with_monitor do
       tsv.with_unnamed do
         tsv.through do |key, values|
-          pvalue = rank_enrichment_for_list(list, values, options)
+          pvalue = rank_enrichment_for_list(list, values.flatten, options)
           res[key] = [pvalue, (values.respond_to?(:subset) ? values.subset(list) :  values - list)]
         end
       end

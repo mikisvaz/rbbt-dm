@@ -79,6 +79,10 @@ module Expression
     end
   end
 
+  def self.barcode(matrix_file, output_file)
+    GE.barcode(matrix_file, output_file)
+  end
+
   def self.top_up(diff_file, cutoff = 0.05)
     TSV.open(diff_file, :cast => :to_f).select("adjusted.p.values"){|p| p > 0 and p < cutoff}
   end

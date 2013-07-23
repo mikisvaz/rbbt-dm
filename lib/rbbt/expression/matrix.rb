@@ -38,9 +38,9 @@ class Matrix
     @organism    = organism
   end
 
-  def matrix_file
-    path = Persist.persistence_path(data, {:dir => Matrix::MATRIX_DIR}, {:identifiers => identifiers, :labels => labels, :key_field => key_field, :organism => organism})
-    Persist.persist(data, :tsv, :file => path, :check => [data]) do
+  def matrix_file(path = nil)
+    path ||= Persist.persistence_path(data, {:dir => Matrix::MATRIX_DIR}, {:identifiers => identifiers, :labels => labels, :key_field => key_field, :organism => organism})
+    Persist.persist(data, :tsv, :file => path, :check => [data], :no_load => true) do
       Expression.load_matrix(data, identifiers, key_field, organism)
     end
     path
@@ -68,6 +68,15 @@ class Matrix
     samples = find_samples(value, field)
     samples = remove_missing(samples)
     average_samples(samples)
+  end
+
+  def barcode(path = nil)
+    path ||= Persist.persistence_path(matrix_file, {:dir => File.join(Matrix::MATRIX_DIR, 'sample_differences')}, {:main => main, :contrast => contrast, :log2 => log2, :channel => channel})
+    Persist.persist(data, :tsv, :file => path, :no_load => true, :check => [matrix_file]) do
+      Expression.barcode(matrix_file, path)
+      nil
+    end
+    path
   end
 
   def sample_differences(main, contrast)

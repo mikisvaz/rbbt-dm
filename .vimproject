@@ -35,4 +35,9 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
    test_hypergeometric.rb
   }
  }
+ share=share{
+  R=R{
+   heatmap.3.R
+  }
+ }
 }
