@@ -79,8 +79,8 @@ module Expression
     end
   end
 
-  def self.barcode(matrix_file, output_file)
-    GE.barcode(matrix_file, output_file)
+  def self.barcode(matrix_file, output_file, factor = 3)
+    GE.barcode(matrix_file, output_file, factor)
   end
 
   def self.top_up(diff_file, cutoff = 0.05)

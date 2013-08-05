@@ -460,7 +460,7 @@ module TSV
   end
 
   def ranks_for(field)
-    ranks = TSV.setup({}, :key_field => self.key_field, :fields => ["Rank"])
+    ranks = TSV.setup({}, :key_field => self.key_field, :fields => ["Rank"], :type => :single, :cast => :to_i)
     sort_by(field, true).each_with_index do |k, i|
       ranks[k] = i
     end

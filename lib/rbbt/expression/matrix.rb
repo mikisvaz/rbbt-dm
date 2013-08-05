@@ -41,7 +41,9 @@ class Matrix
   def matrix_file(path = nil)
     path ||= Persist.persistence_path(data, {:dir => Matrix::MATRIX_DIR}, {:identifiers => identifiers, :labels => labels, :key_field => key_field, :organism => organism})
     Persist.persist(data, :tsv, :file => path, :check => [data], :no_load => true) do
-      Expression.load_matrix(data, identifiers, key_field, organism)
+      matrix = Expression.load_matrix(data, identifiers, key_field, organism)
+      matrix = matrix.select(:key => Organism.sanctioned_genes(organism).list) if matrix.key_field == "Ensembl Gene ID"
+      matrix
     end
     path
   end
@@ -70,10 +72,10 @@ class Matrix
     average_samples(samples)
   end
 
-  def barcode(path = nil)
+  def barcode(path = nil, factor = 2)
     path ||= Persist.persistence_path(matrix_file, {:dir => File.join(Matrix::MATRIX_DIR, 'sample_differences')}, {:main => main, :contrast => contrast, :log2 => log2, :channel => channel})
     Persist.persist(data, :tsv, :file => path, :no_load => true, :check => [matrix_file]) do
-      Expression.barcode(matrix_file, path)
+      Expression.barcode(matrix_file, path, factor)
       nil
     end
     path

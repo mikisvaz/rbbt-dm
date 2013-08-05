@@ -489,8 +489,10 @@ rbbt.heatmap.3 <- function(filename, width, height, data, take_log=FALSE, keys=N
     data = as.matrix(data)
     data[is.nan(data)] = NA
 
-    data = data[rowSums(is.na(data))==0, ]
 
+    data = data[rowSums(!is.na(data))!=0, colSums(!is.na(data))!=0]
+
+    data = data[rowSums(is.na(data))==0, ]
     if (take_log){
         for (study in colnames(data)){
             skip = sum(data[, study] <= 0) != 0
@@ -501,9 +503,9 @@ rbbt.heatmap.3 <- function(filename, width, height, data, take_log=FALSE, keys=N
         data = data[, colSums(is.na(data))==0]
     }
 
-    data = stdize(data)
+    #data = stdize(data)
 
-    heatmap.3(data, margins = c(20,5), scale='column', ...)
+    heatmap.3(data, margins = c(20,5), scale='column', na.rm=TRUE, ...)
     if (!is.null(keys)){
         legend("bottomleft",legend=keys, fill=colors, border=FALSE, bty="n", y.intersp = 1.7, cex=1.7)
     }

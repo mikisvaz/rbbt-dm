@@ -240,7 +240,7 @@ module TSV
 
       pvalues = {}
       annotation_keys.each do |annotation, elems|
-        next if masked.include? annotation
+        next if masked and masked.include? annotation
         elems = elems.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq if rename
         count = elems.length
         next if count < options[:min_support] or not counts.include? annotation
