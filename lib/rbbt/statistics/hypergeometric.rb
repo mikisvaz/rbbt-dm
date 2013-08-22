@@ -113,7 +113,8 @@ module TSV
     fields = [fields] if String === fields or Symbol === fields
     rename = options.delete :rename
 
-    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts", :other => {:rename => rename}) do 
+    persistence_path = self.respond_to?(:persistence_path)? self.persistence_path : nil
+    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts", :other => {:rename => rename, :persistence_path => persistence_path}) do 
       data ||= {}
 
       with_unnamed do
@@ -223,6 +224,7 @@ module TSV
 
         when :flat
           selected.through :key, fields do |key, values|
+            next if values.nil?
             values.compact.uniq.reject{|value| value.empty?}.each{|value| 
               value = value.dup
               annotation_keys[value] ||= []

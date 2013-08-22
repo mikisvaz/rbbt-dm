@@ -53,6 +53,54 @@ module RandomWalk
     }
     EOC
 
+    builder.c_singleton <<-'EOC'
+    double score_plain_weight(VALUE positions, int total, int missing){
+      int idx;
+
+      int position;
+      double penalty;
+      double max_top, max_bottom;
+      double hit_weights = 0;
+
+      VALUE rel_l = rb_ary_new();
+      VALUE rel_q = rb_ary_new();
+
+      rb_ary_push(rel_q,rb_float_new(0));
+
+      // Rescale positions and accumulate weights
+
+      for (idx = 0; idx < RARRAY_LEN(positions); idx++){
+        position = FIX2INT(rb_ary_entry(positions, idx));
+
+        rb_ary_push(rel_l, rb_float_new((double) position / total));
+
+        hit_weights += 1;
+        rb_ary_push(rel_q, rb_float_new(hit_weights));
+      }
+
+      // Add penalty for missing genes
+      penalty = missing * 1;
+      hit_weights  = hit_weights + penalty;
+
+      // Traverse list and get extreme values of:
+      // Proportion of weight covered - Proportion of hits covered
+
+      max_top = max_bottom = 0;
+      for (idx = 0; idx < RARRAY_LEN(positions); idx++){
+        double top    = RFLOAT_VALUE(rb_ary_entry(rel_q, idx + 1)) / hit_weights -
+                        RFLOAT_VALUE(rb_ary_entry(rel_l, idx));
+        double bottom = - (penalty + RFLOAT_VALUE(rb_ary_entry(rel_q, idx))) / hit_weights +
+                        RFLOAT_VALUE(rb_ary_entry(rel_l, idx));
+
+        if (top > max_top)       max_top    = top;
+        if (bottom > max_bottom) max_bottom = bottom;
+      }
+
+     if (max_top > max_bottom) return max_top;
+     else                      return -max_bottom;
+    }
+    EOC
+
     builder.c_raw_singleton <<-'EOC'
     double fitted_weight(int position, int medium){
         double rel_pos = (double) abs(position - medium) / medium; 
@@ -164,9 +212,16 @@ module RandomWalk
   end
 
   class << self
-    alias score score_fitted_weight
-    alias score_weights score_custom_weights
+    attr_accessor :scoring_method
+
+    def set_scoring(method)
+      scoring_method = method
+      class << self; self end.send(:alias_method, :score, method.to_sym)
+    end
   end
+
+  set_scoring :score_fitted_weight
+
 
   def self.combine(up, down)
     return down if up == 0
@@ -204,12 +259,13 @@ module RandomWalk
   def self.persisted_permutations(size, total, missing = 0, times = 10_000)
     repo_file = "/tmp/rw_repo5"
     repo = Persist.open_tokyocabinet(repo_file, false, :float_array)
-    key = Misc.digest([size, total, missing, times].inspect)
+    key = Misc.digest([size, total, missing, times, scoring_method].inspect)
     if repo[key]
       repo[key]
     else
+      p = permutations(size, total, missing, times)
       repo.write
-      repo[key] = permutations(size, total, missing, times)
+      repo[key] = p
       repo.read
       repo[key]
     end
@@ -223,7 +279,7 @@ module RandomWalk
 
   def self.pvalue(permutations, score)
     score = score.abs
-    permutations.inject(0){|acc, per| 
+    permutations.inject(1){|acc, per| 
 
       acc += 1 if per > score
       acc
@@ -373,7 +429,7 @@ module OrderedList
 
           return 1.0 if better_permutation_score_count > max
         end
-        p = better_permutation_score_count.to_f / permutations
+        p = (better_permutation_score_count.to_f + 1) / permutations
         p = -p if target_score < 0
         p
       end
@@ -414,7 +470,7 @@ module OrderedList
 
         return 1.0 if better_permutation_score_count > max
       end
-      p = better_permutation_score_count.to_f / permutations
+      p = (better_permutation_score_count.to_f + 1) / permutations
       p = -p if target_score < 0
       p
     end
@@ -434,6 +490,7 @@ module TSV
   end
 
   def self.rank_enrichment(tsv, list, options = {})
+    masked = options[:masked]
     if tsv.fields
       res = TSV.setup({}, :cast => :to_f, :type => :double, :key_field => tsv.key_field, :fields => ["p-value", tsv.fields.first]) 
     else
@@ -441,11 +498,12 @@ module TSV
     end
 
     list = list.clean_annotations if list.respond_to? :clean_annotations
-    tsv.with_monitor do
+    tsv.with_monitor :desc => "Rank enrichment" do
       tsv.with_unnamed do
         tsv.through do |key, values|
+          next if masked and masked.include? key
           pvalue = rank_enrichment_for_list(list, values.flatten, options)
-          res[key] = [pvalue, (values.respond_to?(:subset) ? values.subset(list) :  values - list)]
+          res[key] = [pvalue, (values.respond_to?(:subset) ? values.subset(list) :  values & list)]
         end
       end
     end
