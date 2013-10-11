@@ -1,9 +1,6 @@
 require 'rbbt/util/misc'
 
 module Signature
-  extend ChainMethods
-  self.chain_prefix = :signature
-
 
   def self.setup(hash, options = {})
     hash.extend Signature
@@ -27,8 +24,8 @@ module Signature
 
   #{{{ Basic manipulation
 
-  def signature_select(*args, &block)
-    Signature.setup(signature_clean_select(*args, &block))
+  def select(*args, &block)
+    Signature.setup(super(*args, &block))
   end
 
   def transform(&block)
