@@ -223,7 +223,7 @@ module TSV
           end
 
         when :flat
-          selected.through :key, fields do |key, values|
+          selected.through do |key, values|
             next if values.nil?
             values.compact.uniq.reject{|value| value.empty?}.each{|value| 
               value = value.dup
