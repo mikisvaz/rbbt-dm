@@ -52,7 +52,7 @@ module FDR
     c_code = <<-EOC_CODE
         double step_up_fast(VALUE ps, double rate){
            long idx;
-           int total = RARRAY_LEN(ps);
+           int total = (int) RARRAY_LEN(ps);
 
            double last_value = 0;
            for (idx = 0; idx < total; idx++){
@@ -74,7 +74,7 @@ module FDR
          VALUE adjust_fast_self(VALUE ps){
            long idx;
 
-           int total = RARRAY_LEN(ps);
+           int total = (int) RARRAY_LEN(ps);
 
            VALUE new = rb_ary_new();
 
@@ -99,7 +99,7 @@ module FDR
          VALUE adjust_fast(VALUE ps){
            long idx;
 
-           int total = RARRAY_LEN(ps);
+           int total = (int) RARRAY_LEN(ps);
 
            VALUE new = rb_ary_new();
 
