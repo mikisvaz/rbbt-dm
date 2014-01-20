@@ -249,7 +249,7 @@ module TSV
         pvalues[annotation] = RSRuby.instance.phyper(count - 1, counts[annotation], tsv_size - counts[annotation], total, false).to_f
       end
 
-      FDR.adjust_hash! pvalues if options[:fdr]
+      pvalues = FDR.adjust_hash! pvalues if options[:fdr]
 
       pvalues.delete_if{|k, pvalue| pvalue > options[:cutoff] } if options[:cutoff]
 

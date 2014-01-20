@@ -34,19 +34,19 @@ module FDR
   inline do |builder|
 
     builder.prefix  <<-EOC_CODE
+
 //{{{ Make compatible with 1.9 and 1.8
 #ifndef RUBY_19
-#ifndef RFLOAT_VALUE
-#define RFLOAT_VALUE(v) (RFLOAT(v)->value)
+# define RFLOAT_VALUE_SET(v) (((struct RFloat *)v)->float_value)
+# ifndef RFLOAT_VALUE
+#  define RFLOAT_VALUE(v) (RFLOAT(v)->value)
+# endif
+# ifndef RARRAY_LEN
+#  define RARRAY_LEN(v) (RARRAY(v)->len)
+# endif
+#else
+# define RFLOAT_VALUE_SET(v) RFLOAT_VALUE
 #endif
-#ifndef RARRAY_PTR
-#define RARRAY_PTR(v) (RARRAY(v)->ptr)
-#endif
-#ifndef RARRAY_LEN
-#define RARRAY_LEN(v) (RARRAY(v)->len)
-#endif
-#endif
-//}}} Make compatible with 1.9 and 1.8
     EOC_CODE
 
     c_code = <<-EOC_CODE
@@ -55,8 +55,10 @@ module FDR
            int total = (int) RARRAY_LEN(ps);
 
            double last_value = 0;
+           double p;
+
            for (idx = 0; idx < total; idx++){
-             double p  = (double) RFLOAT_VALUE(rb_ary_entry(ps, idx));
+             p  = (double) RFLOAT_VALUE(rb_ary_entry(ps, idx));
 
              if (p > rate * (double) (idx + 1) / (double) total){
                 return last_value;
@@ -76,18 +78,18 @@ module FDR
 
            int total = (int) RARRAY_LEN(ps);
 
-           VALUE new = rb_ary_new();
-
            double last = 1;
+           VALUE current_value;
            for (idx = total - 1; idx >= 0 ; idx-- ){
-             double p  = (double) RFLOAT_VALUE(rb_ary_entry(ps, idx));
-
+             current_value = rb_ary_entry(ps, idx);
+             
+             double p  = (double) RFLOAT_VALUE(current_value);
 
              p = p * (double) total / (double) (idx + 1);
              if (p > last) p = last;
              last = p;
 
-             RFLOAT_VALUE(rb_ary_entry(ps, idx)) = p;
+             RFLOAT_VALUE_SET(rb_ary_entry(ps, idx)) = p;
            }
 
           return ps;
@@ -101,21 +103,24 @@ module FDR
 
            int total = (int) RARRAY_LEN(ps);
 
-           VALUE new = rb_ary_new();
+           VALUE new_ary = rb_ary_new();
+           VALUE f;
 
-           double last = 1;
+           double p, last = 1;
+
            for (idx = total - 1; idx >= 0 ; idx-- ){
-             double p  = (double) RFLOAT_VALUE(rb_ary_entry(ps, idx));
+             p  = (double) RFLOAT_VALUE(rb_ary_entry(ps, idx));
 
 
              p = p * (double) total / (double) (idx + 1);
              if (p > last) p = last;
              last = p;
 
-             rb_ary_unshift(new,rb_float_new(p));
+             f = rb_float_new(p);
+             rb_ary_unshift(new_ary, f);
            }
 
-           return new;
+           return new_ary;
          }
     EOC_CODE
     builder.c_singleton c_code
@@ -130,7 +135,7 @@ module FDR
     alias :step_up :step_up_fast
   end
 
-  # This will change the values of the floats in situ
+  # This will change the values of the floats in-situ
   def self.adjust_hash!(data, field = nil)
     keys = []
     values = []
@@ -151,9 +156,15 @@ module FDR
       data.unnamed = unnamed
     end
 
-    FDR.adjust!(values)
+    if RUBY_VERSION[0] == "2"
+      # I don't know why the RFLOAT_VALUE_SET for Ruby 2.1.0 does not work
+      values = FDR.adjust(values)
+      data   = Hash[*keys.zip(values).flatten]
+    else
+      FDR.adjust!(values)
+    end
 
-    data
+    data 
   end
 
 end
