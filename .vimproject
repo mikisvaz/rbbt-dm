@@ -3,29 +3,31 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
  bin=bin {
  }
  lib=lib {
-  statistics=rbbt/statistics{
-   hypergeometric.rb
-   fdr.rb
-   random_walk.rb
-   rank_product.rb
-  }
-  plots=rbbt/plots{
-   bar.rb
-   heatmap.rb
-  }
-  network=rbbt/network{
-   paths.rb
-  }
-  vector=rbbt/vector{
-   model.rb
-   model=model{
-    svm.rb
-   }
-  }
-  expression=rbbt/expression{
-   expression.rb
+  rbbt=rbbt{
    matrix.rb
-   signature.rb
+   matrix=matrix{
+    barcode.rb
+    differential.rb
+   }
+   statistics=statistics{
+    fdr.rb
+    hypergeometric.rb
+    random_walk.rb
+    rank_product.rb
+   }
+   plots=plots{
+    bar.rb
+    heatmap.rb
+   }
+   network=network{
+    paths.rb
+   }
+   vector=vector{
+    model.rb
+    model=model{
+     svm.rb
+    }
+   }
   }
  }
  test=test {
