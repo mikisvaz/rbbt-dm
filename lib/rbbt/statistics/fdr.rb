@@ -135,41 +135,6 @@ module FDR
     alias :step_up :step_up_fast
   end
 
-  # This will change the values of the floats in-situ
-  def self.adjust_hash!(data, field = nil)
-    keys = []
-    values = []
-
-    if data.respond_to? :unnamed
-      unnamed = data.unnamed 
-      data.unnamed = true
-    end
-
-    data.collect{|key, value| [key, Array === ( v = field.nil? ? value : value[field] ) ? v.first : v] }.sort{|a,b| 
-      a[1] <=> b[1]
-    }.each{|p|
-      keys << p[0]
-      values << p[1]
-    }
-
-    if data.respond_to? :unnamed
-      data.unnamed = unnamed
-    end
-
-    if RUBY_VERSION[0] == "2"
-      # I don't know why the RFLOAT_VALUE_SET for Ruby 2.1.0 does not work
-      values = FDR.adjust(values)
-      d   = Hash[*keys.zip(values).flatten]
-      data.annotate d if data.respond_to? :annotate
-      data = d
-      data
-    else
-      FDR.adjust!(values)
-    end
-
-    data 
-  end
-
   def self.adjust_hash!(data, field = nil)
     begin
       if data.respond_to? :unnamed
