@@ -159,12 +159,59 @@ module FDR
     if RUBY_VERSION[0] == "2"
       # I don't know why the RFLOAT_VALUE_SET for Ruby 2.1.0 does not work
       values = FDR.adjust(values)
-      data   = Hash[*keys.zip(values).flatten]
+      d   = Hash[*keys.zip(values).flatten]
+      data.annotate d if data.respond_to? :annotate
+      data = d
+      data
     else
       FDR.adjust!(values)
     end
 
     data 
+  end
+
+  def self.adjust_hash!(data, field = nil)
+    begin
+      if data.respond_to? :unnamed
+        unnamed = data.unnamed 
+        data.unnamed = true
+      end
+
+      values = []
+      keys = []
+      data.collect{|k,vs|
+        v = field.nil? ? vs : vs[field]
+        v = v.first if Array === v
+        [k, v] 
+      }.sort{|a,b| 
+        a[1] <=> b[1]
+      }.each{|p|
+        keys << p[0]
+        values << p[1]
+      }
+
+      if RUBY_VERSION[0] == "2"
+        values = FDR.adjust(values)
+        keys.zip(values).each do |k,v|
+          vs = data[k] 
+          if field
+            vs[field] = v
+          else
+            if Array === vs
+              vs[0] = v
+            else
+              data[k] = vs
+            end
+          end
+        end
+      else
+        FDR.adjust!(values)
+      end
+
+      data
+    ensure
+      data.unnamed = unnamed if unnamed
+    end
   end
 
 end

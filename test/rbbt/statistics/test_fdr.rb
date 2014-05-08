@@ -1,7 +1,7 @@
 require File.expand_path(File.dirname(__FILE__) + '/../../test_helper')
 require 'rbbt/statistics/fdr'
 require 'test/unit'
-require 'rsruby'
+require 'rbbt/util/R'
 
 class TestFDR < Test::Unit::TestCase
   def clean(values)
@@ -17,11 +17,9 @@ class TestFDR < Test::Unit::TestCase
   end
 
   def setup
-    @r = RSRuby.instance
     @values = [0.001, 0.002, 0.003, 0.003, 0.003, 0.004, 0.006, 0.07, 0.09]
     @threshold = 0.01
-    @r_adj = @r.p_adjust(@values,'BH')
-
+    @r_adj = R.eval_a "p.adjust(#{R.ruby2R(@values)},'BH')"
   end
 
   def test_step_up
@@ -34,8 +32,9 @@ class TestFDR < Test::Unit::TestCase
     assert_equal(clean(@r_adj), clean(FDR.adjust_native(@values)))
     assert_equal(clean(FDR.adjust_fast(@values)), clean(FDR.adjust_native(@values)))
 
-    assert_equal(clean(@r_adj), clean(FDR.adjust_fast_self(copy(@values))))
+    assert_equal(clean(@r_adj), clean(FDR.adjust_fast_self(copy(@values)))) if RUBY_VERSION[0] != "2"
   end
+
 end
 
 
