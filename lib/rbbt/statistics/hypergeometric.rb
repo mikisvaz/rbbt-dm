@@ -101,8 +101,9 @@ double hypergeometric_c(double total, double support, double list, double found)
     EOC
   end
 
-  def self.hypergeometric(total, support, list, found)
-    RSRuby.instance.phyper(found, support, total - support, list, false).to_f
+  def self.hypergeometric(count, positive, negative, total)
+    #RSRuby.instance.phyper(count - 1, positive, negative, total, false).to_f
+    R.eval("phyper(#{ count } - 1, #{ positive }, #{ negative }, #{ total }, FALSE)").to_f
   end
 end
 
@@ -246,7 +247,8 @@ module TSV
         elems = elems.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq if rename
         count = elems.length
         next if count < options[:min_support] or not counts.include? annotation
-        pvalues[annotation] = RSRuby.instance.phyper(count - 1, counts[annotation], tsv_size - counts[annotation], total, false).to_f
+        #pvalues[annotation] = RSRuby.instance.phyper(count - 1, counts[annotation], tsv_size - counts[annotation], total, false).to_f
+        pvalues[annotation] = Hypergeometric.hypergeometric(count, counts[annotation], tsv_size - counts[annotation], total)
       end
 
       pvalues = FDR.adjust_hash! pvalues if options[:fdr]
