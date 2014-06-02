@@ -1,5 +1,4 @@
 require 'inline'
-require 'rsruby'
 require 'rbbt'
 require 'rbbt/persist'
 require 'rbbt/persist'
