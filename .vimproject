@@ -39,6 +39,7 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
  }
  share=share{
   R=R{
+   barcode.R
    heatmap.3.R
   }
  }

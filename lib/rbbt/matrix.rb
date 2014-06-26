@@ -92,7 +92,10 @@ class Matrix
 
   def to_gene(identifiers = nil)
     require 'rbbt/tsv/change_id'
-    file = Persist.persist(data_file, :tsv, :prefix => "GENE", :dir => Matrix.matrix_dir, :no_load => true) do
+
+    name = data_file =~ /:>/ ? File.basename(data_file) : data_file
+
+    file = Persist.persist(data_file, :tsv, :prefix => "Gene", :dir => Matrix.matrix_dir.values, :no_load => true) do
       identifiers = [Organism.identifiers(organism), @identifiers, identifiers].compact.uniq
 
       data_file.tsv(:cast => :to_f).change_key("Ensembl Gene ID", :identifiers => identifiers) do |v|
