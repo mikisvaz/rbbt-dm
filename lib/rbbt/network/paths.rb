@@ -61,9 +61,9 @@ module Paths
       distances[u] = distance
       path = extract_path(parents, start_node, u)
       next if path.length > max_steps if max_steps 
-      next if not adjacency.include?(u) or adjacency[u].nil? or adjacency[u].empty? 
+      next if not adjacency.include?(u) or (adjacency[u].nil? or adjacency[u].empty? )
       Misc.zip_fields(adjacency[u]).each do |v,node_dist|
-        next if threshold and node_dist > threshold
+        next if node_dist.nil? or (threshold and node_dist > threshold)
         d = distance + node_dist
         next unless d < distances[v] and d < best # we can't relax this one
         active[v] << d
@@ -102,6 +102,7 @@ module Paths
       distances[u] = distance
       next if not adjacency.include?(u) or adjacency[u].nil? or adjacency[u].empty?
       Misc.zip_fields(adjacency[u]).each do |v,node_dist|
+        next if node_dist.nil?
         d = distance + (node_dist * (l + rand))
         next unless d < distances[v] and d < best # we can't relax this one
         active[v] << distances[v] = d
@@ -149,6 +150,66 @@ module Entity
         end
         paths
       end
+    end
+  end
+end
+
+module AssociationItem
+
+  def self.dijkstra(matches, start_node, end_node = nil, threshold = nil, max_steps = nil, &block)
+    adjacency = {}
+
+    matches.each do |m|
+      s, t, undirected = m.split "~"
+      next m if s.nil? or t.nil? or s.strip.empty? or t.strip.empty?
+      adjacency[s] ||= Set.new
+      adjacency[s] << t 
+      next unless m.undirected
+      adjacency[t] ||= Set.new
+      adjacency[t] << s  
+    end
+
+    return nil unless adjacency.include? start_node
+
+    active = PriorityQueue.new         
+    distances = Hash.new { 1.0 / 0.0 } 
+    parents = Hash.new                 
+
+    active[start_node] << 0
+    best = 1.0 / 0.0
+    found = false
+    node_dist_cache = {}
+
+    until active.empty?
+      u = active.priorities.first
+      distance = active.shift
+      distances[u] = distance
+      path = Paths.extract_path(parents, start_node, u)
+      next if path.length > max_steps if max_steps 
+      next if not adjacency.include?(u) or (adjacency[u].nil? or adjacency[u].empty? )
+      adjacency[u].each do |v|
+        node_dist = node_dist_cache[[u,v]] ||= (block_given? ? block.call(u,v) : 1)
+        next if node_dist.nil? or (threshold and node_dist > threshold)
+        d = distance + node_dist
+        next unless d < distances[v] and d < best # we can't relax this one
+        active[v] << d
+        distances[v] = d
+        parents[v] = u
+        if (String === end_node ? end_node == v : end_node.include?(v))
+          best = d 
+          found = true
+        end
+      end    
+    end
+
+    return nil unless found
+
+    if end_node
+      end_node = (end_node & parents.keys).first unless String === end_node
+      return nil if not parents.include? end_node
+      Paths.extract_path(parents, start_node, end_node)
+    else
+      parents
     end
   end
 end
