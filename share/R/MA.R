@@ -38,11 +38,13 @@ rbbt.dm.matrix.differential.limma.oneside <- function(expr, subset = NULL){
 }
 
 rbbt.dm.matrix.differential.limma.twoside <- function(expr, subset.main, subset.contrast){
+    names.expr = dimnames(expr)[[2]]
 
     design = cbind(rep(1,dim(expr)[2]), rep(0,dim(expr)[2]));
     colnames(design) <-c('intercept', 'expr');
-    design[names(expr) %in% subset.main,]     = 1;
-    design[names(expr) %in% subset.contrast,'intercept']     = 1;
+    design[names.expr %in% subset.main,]     = 1;
+    design[names.expr %in% subset.contrast,'intercept']     = 1;
+
     
     fit <- lmFit(expr, design);
 
@@ -65,6 +67,16 @@ rbbt.dm.matrix.guess.log2 <- function(m, two.channel){
 
 rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALSE, outfile = NULL, key.field = NULL, two.channel = NULL){
     data = data.matrix(rbbt.tsv(file));
+    dimnames = dimnames(data)
+    original.dimnames = dimnames;
+
+    dimnames[[1]] = make.names(dimnames[[1]])
+    dimnames[[2]] = make.names(dimnames[[2]])
+
+    dimnames(data) <- dimnames
+    main <- make.names(main);
+    contrast <- make.names(contrast);
+
     ids = rownames(data);
     if (is.null(key.field)){ key.field = "ID" }
 
@@ -76,7 +88,6 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALS
        data = log2(data);
        min = min(data[data != -Inf])
        data[data == -Inf] = min
-       return
     }
 
     if (is.null(contrast)){
@@ -116,12 +127,15 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALS
 
     }
 
-    if (! is.null(limma)){
+
+    if (! is.null(limma) && sum(is.na(limma$t)) != length(limma$t)){
        result = data.frame(ratio = ratio[ids], t.values = limma$t[ids], p.values = limma$p.values[ids])
        result["adjusted.p.values"] = p.adjust(result$p.values, "fdr")
     }else{
        result = data.frame(ratio = ratio)
     }
+
+    rownames(result) <- original.dimnames[[1]]
 
    if (is.null(outfile)){
        return(result);

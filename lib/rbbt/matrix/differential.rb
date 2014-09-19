@@ -1,3 +1,5 @@
+require 'rbbt/util/R'
+
 class Matrix
   def differential(main, contrast, path = nil)
     if Array === main and Array === contrast
@@ -7,17 +9,31 @@ class Matrix
     end
 
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
-    Persist.persist(name, :tsv, :update => true, 
+    Persist.persist(name, :tsv, :persist => :update,
                     :other => {:main => main_samples, :contrast => contrast_samples}, 
                     :prefix => "Diff", :dir => Matrix.matrix_dir.differential, :no_load => true) do |file|
 
-      log2 = value_type.nil? or value_type == "count"
-      log2 = false
-      two_channel = false
-      FileUtils.mkdir_p File.dirname(file) unless file.nil? or File.exists? File.dirname(file)
-      cmd = "source('#{Rbbt.share.R["MA.R"].find}'); rbbt.dm.matrix.differential(#{ R.ruby2R data_file }, main = #{R.ruby2R(main_samples)}, contrast = #{R.ruby2R(contrast_samples)}, log2=#{ R.ruby2R log2 }, outfile = #{R.ruby2R path}, key.field = #{R.ruby2R format}, two.channel = #{R.ruby2R two_channel})"
-      R.run(cmd)
-      nil
+      raise if file.nil?
+
+        log2 = value_type.nil? or value_type == "count"
+        log2 = false
+        two_channel = false
+        FileUtils.mkdir_p File.dirname(file) unless file.nil? or File.exists? File.dirname(file)
+
+        cmd = <<-EOS
+
+source('#{Rbbt.share.R["MA.R"].find}')
+
+data = rbbt.dm.matrix.differential(#{ R.ruby2R data_file }, 
+  main = #{R.ruby2R(main_samples)}, 
+  contrast = #{R.ruby2R(contrast_samples)}, 
+  log2=#{ R.ruby2R log2 }, 
+  outfile = #{R.ruby2R file}, 
+  key.field = #{R.ruby2R format}, 
+  two.channel = #{R.ruby2R two_channel})
+        EOS
+
+        R.run(cmd, :monitor => true)
     end
   end
 end

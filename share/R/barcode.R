@@ -25,3 +25,17 @@ rbbt.GE.barcode <- function(matrix_file, output_file, sd.factor = 2, key.field =
   }
   close(file.barcode)
 }
+
+
+rbbt.GE.activity_cluster <- function(matrix_file, output_file, key.field = "ID"){
+
+    library(mclust)
+
+    data = rbbt.tsv(matrix_file)
+    classes = apply(data,2,function(row){Mclust(row)$classification})
+
+    rownames(classes) <- rownames(data)
+    names(classes) <- c("Cluster")
+
+    rbbt.tsv.write(output_file, classes, key.field)
+}

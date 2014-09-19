@@ -6,6 +6,7 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
   rbbt=rbbt{
    matrix.rb
    matrix=matrix{
+    knowledge_base.rb
     barcode.rb
     differential.rb
    }
