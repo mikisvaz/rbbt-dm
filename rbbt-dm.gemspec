@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib"]
   s.authors = ["Miguel Vazquez"]
-  s.date = "2014-09-16"
+  s.date = "2014-09-19"
   s.description = "Data-mining and statistics"
   s.email = "miguel.vazquez@fdi.ucm.es"
   s.extra_rdoc_files = [
@@ -25,6 +25,7 @@ Gem::Specification.new do |s|
     "lib/rbbt/matrix.rb",
     "lib/rbbt/matrix/barcode.rb",
     "lib/rbbt/matrix/differential.rb",
+    "lib/rbbt/matrix/knowledge_base.rb",
     "lib/rbbt/network/paths.rb",
     "lib/rbbt/plots/bar.rb",
     "lib/rbbt/plots/heatmap.rb",
