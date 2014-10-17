@@ -8,6 +8,8 @@ require 'rbbt/entity'
 require 'distribution'
 require 'distribution/hypergeometric'
 
+require 'rbbt/util/R/eval'
+
 module Hypergeometric
   inline do |builder|
     builder.prefix <<-EOC
