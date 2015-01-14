@@ -115,6 +115,7 @@ module TSV
     fields = [fields] if String === fields or Symbol === fields
     rename = options.delete :rename
 
+    field_pos = fields.collect{|f| self.fields.index f}.compact
     persistence_path = self.respond_to?(:persistence_path)? self.persistence_path : nil
     Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts", :other => {:rename => rename, :persistence_path => persistence_path}) do 
       data ||= {}
@@ -123,22 +124,22 @@ module TSV
 
         case type
         when :single
-          through :key, fields do |key, value|
+          through :key, field_pos do |key, value|
             next if value.nil? 
             data[value] ||= []
             data[value] << key
           end
         when :double
-          through :key, fields do |key, values|
+          through :key, field_pos do |key, values|
             values.flatten.compact.uniq.each{|value| data[value] ||= []; data[value] << key}
           end
         when :list
-          through :key, fields do |key, values|
+          through :key, field_pos do |key, values|
             next if values.nil?
             values.compact.uniq.each{|value| data[value] ||= []; data[value] << key}
           end
         when :flat
-          through :key, fields do |key, values|
+          through :key, field_pos do |key, values|
             next if values.nil?
             values.compact.uniq.each{|value| data[value] ||= []; data[value] << key}
           end
@@ -234,7 +235,6 @@ module TSV
             }
           end
         end
-
       end
 
       if Array === background and not background.empty?
