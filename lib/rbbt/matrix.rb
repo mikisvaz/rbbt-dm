@@ -134,7 +134,7 @@ class Matrix
 
       identifiers = [identifiers, @identifiers, data.identifiers, Organism.identifiers(organism)].flatten.compact.uniq
 
-      data.change_key("Ensembl Gene ID", :identifiers => identifiers) do |v|
+      data.change_key("Ensembl Gene ID", :identifiers => identifiers.reverse) do |v|
         Misc.mean(v.compact)
       end
     end
