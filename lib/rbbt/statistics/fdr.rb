@@ -89,7 +89,8 @@ module FDR
              if (p > last) p = last;
              last = p;
 
-             RFLOAT_VALUE_SET(rb_ary_entry(ps, idx)) = p;
+             //RFLOAT_VALUE_SET(rb_ary_entry(ps, idx)) = p;
+             rb_ary_unshift(ps, p);
            }
 
           return ps;
