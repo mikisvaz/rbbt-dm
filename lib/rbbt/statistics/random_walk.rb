@@ -503,8 +503,11 @@ module TSV
       tsv.with_unnamed do
         tsv.through do |key, values|
           next if masked and masked.include? key
-          pvalue = rank_enrichment_for_list(list, values.flatten, options)
-          res[key] = [pvalue, (values.respond_to?(:subset) ? values.subset(list) :  values & list)]
+          values = values.flatten.compact.reject{|v| v.empty?}
+          matches = (values.respond_to?(:subset) ? values.subset(list) :  values & list).compact
+          next if matches.length < 2
+          pvalue = rank_enrichment_for_list(list, values, options)
+          res[key] = [pvalue, matches]
         end
       end
     end
