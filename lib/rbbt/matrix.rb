@@ -24,7 +24,7 @@ class Matrix
     _header = nil
     @organism ||=  begin
                      _header ||= TSV.parse_header(@data_file)
-                     _header.namespace || "Hsa"
+                     _header.namespace || Organism.default_code("Hsa")
                    end
     @identifiers = identifiers 
   end
@@ -110,7 +110,7 @@ class Matrix
         contrast_samples = contrast.split(/[|,\n]/)
       end
     else
-      if subsets and defined? main_factor
+      if subsets and main_factor
         contrast_samples = subsets[main_factor].values.flatten.collect{|s| s.split ',' }.flatten.uniq - main_samples
       else
         contrast_samples = samples - main_samples
@@ -138,6 +138,6 @@ class Matrix
         Misc.mean(v.compact)
       end
     end
-    Matrix.new file, labels, value_type, format
+    Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
   end
 end

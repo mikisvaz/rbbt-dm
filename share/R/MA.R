@@ -65,7 +65,8 @@ rbbt.dm.matrix.guess.log2 <- function(m, two.channel){
     }
 }
 
-rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALSE, outfile = NULL, key.field = NULL, two.channel = NULL){
+rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALSE, outfile = NULL, key.field = NULL, two.channel = NULL, namespace = NULL){
+    if (is.null(namespace)) namespace = rbbt.default_code("Hsa")
     data = data.matrix(rbbt.tsv(file));
     dimnames = dimnames(data)
     original.dimnames = dimnames;
@@ -130,7 +131,7 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALS
 
     if (! is.null(limma) && sum(is.na(limma$t)) != length(limma$t)){
        result = data.frame(ratio = ratio[ids], t.values = limma$t[ids], p.values = limma$p.values[ids])
-       result["adjusted.p.values"] = p.adjust(result$p.values, "fdr")
+       result["adjusted.p.values"] = p.adjust(abs(result$p.values), "fdr") * sign(result$p.values)
     }else{
        result = data.frame(ratio = ratio)
     }
@@ -140,7 +141,7 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALS
    if (is.null(outfile)){
        return(result);
    }else{
-       rbbt.tsv.write(outfile, result, key.field, ":type=:list#:cast=:to_f");
+       rbbt.tsv.write(outfile, result, key.field, paste(":type=:list#:cast=:to_f#:namespace=", namespace, "#comment=Negative values mark downregulation", sep=""));
        return(NULL);
    }
 }

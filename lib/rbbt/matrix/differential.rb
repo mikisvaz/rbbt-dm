@@ -9,7 +9,7 @@ class Matrix
     end
 
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
-    Persist.persist(name, :tsv, :persist => :update,
+    Persist.persist(name, :tsv, :persist => :update, :file => path,
                     :other => {:main => main_samples, :contrast => contrast_samples}, 
                     :prefix => "Diff", :dir => Matrix.matrix_dir.differential, :no_load => true) do |file|
 
@@ -30,7 +30,9 @@ data = rbbt.dm.matrix.differential(#{ R.ruby2R data_file },
   log2=#{ R.ruby2R log2 }, 
   outfile = #{R.ruby2R file}, 
   key.field = #{R.ruby2R format}, 
-  two.channel = #{R.ruby2R two_channel})
+  two.channel = #{R.ruby2R two_channel},
+  namespace = #{R.ruby2R organism}
+  )
         EOS
 
         R.run(cmd, :monitor => true)
