@@ -2,6 +2,7 @@ require 'rbbt/util/R'
 
 class Matrix
   def differential(main, contrast, path = nil)
+    all_samples = self.samples
     if Array === main and Array === contrast
       main_samples, contrast_samples = main, contrast
     else
@@ -9,6 +10,8 @@ class Matrix
     end
 
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
+    main_samples = main_samples & all_samples
+    contrast_samples = contrast_samples & all_samples
     Persist.persist(name, :tsv, :persist => :update, :file => path,
                     :other => {:main => main_samples, :contrast => contrast_samples}, 
                     :prefix => "Diff", :dir => Matrix.matrix_dir.differential, :no_load => true) do |file|
