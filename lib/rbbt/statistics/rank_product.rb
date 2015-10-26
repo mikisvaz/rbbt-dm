@@ -63,7 +63,6 @@ module TSV
 
     signature_sizes = fields.collect{|field| slice(field).values.select{|v| v and not (v.respond_to?(:empty?) and v.empty?)}.length} 
 
-    #score = RankProduct.score(positions, fields.collect{ tsv.size })
     score = RankProduct.score(positions, signature_sizes)
 
     score

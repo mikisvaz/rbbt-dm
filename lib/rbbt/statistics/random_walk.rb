@@ -260,15 +260,19 @@ module RandomWalk
     repo_file = "/tmp/rw_repo7"
     repo = Persist.open_tokyocabinet(repo_file, false, :float_array)
     key = Misc.digest([size, total, missing, times, scoring_method].inspect)
-    repo.read
-    if repo[key]
-      repo[key]
-    else
-      p = permutations(size, total, missing, times)
-      repo.write_and_close do
-        repo[key] = p
+    begin
+      repo.read
+      if repo[key]
+        repo[key]
+      else
+        p = permutations(size, total, missing, times)
+        repo.write_and_close do
+          repo[key] = p
+        end
+        p
       end
-      p
+    ensure
+      repo.close
     end
   end
 
