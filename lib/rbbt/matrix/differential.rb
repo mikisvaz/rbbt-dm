@@ -18,12 +18,28 @@ class Matrix
 
       raise if file.nil?
 
-        log2 = value_type.nil? or value_type == "count"
-        log2 = false
+      case value_type
+      when 'two_channel'
+        log2 = true
+        trend = false
+        two_channel = true
+      when nil, 'count', 'counts'
+        log2 = true
+        trend = false
         two_channel = false
-        FileUtils.mkdir_p File.dirname(file) unless file.nil? or File.exists? File.dirname(file)
+      when 'fpkm'
+        log2 = true
+        trend = true
+        two_channel = false
+      else
+        log2 = false
+        trend = true
+        two_channel = false
+      end
 
-        cmd = <<-EOS
+      FileUtils.mkdir_p File.dirname(file) unless file.nil? or File.exists? File.dirname(file)
+
+      cmd = <<-EOS
 
 source('#{Rbbt.share.R["MA.R"].find}')
 
@@ -34,7 +50,8 @@ data = rbbt.dm.matrix.differential(#{ R.ruby2R data_file },
   outfile = #{R.ruby2R file}, 
   key.field = #{R.ruby2R format}, 
   two.channel = #{R.ruby2R two_channel},
-  namespace = #{R.ruby2R organism}
+  namespace = #{R.ruby2R organism},
+  eBayes.trend = #{R.ruby2R trend}
   )
         EOS
 

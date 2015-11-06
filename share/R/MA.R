@@ -17,7 +17,7 @@ rbbt.dm.matrix.differential.ratio.twoside <- function(expr, contrast){
 }
 
 # Limma
-rbbt.dm.matrix.differential.limma.oneside <- function(expr, subset = NULL){
+rbbt.dm.matrix.differential.limma.oneside <- function(expr, subset = NULL, eBayes.trend=FALSE){
 
     if (is.null(subset)){
         fit <- lmFit(expr);
@@ -28,7 +28,7 @@ rbbt.dm.matrix.differential.limma.oneside <- function(expr, subset = NULL){
 
     fit <- lmFit(expr, design);
 
-    fit <- eBayes(fit);
+    fit <- eBayes(fit, trend=eBayes.trend);
 
     sign = fit$t < 0;
     sign[is.na(sign)] = FALSE;
@@ -37,7 +37,7 @@ rbbt.dm.matrix.differential.limma.oneside <- function(expr, subset = NULL){
     return(list(t= fit$t, p.values= fit$p.value));
 }
 
-rbbt.dm.matrix.differential.limma.twoside <- function(expr, subset.main, subset.contrast){
+rbbt.dm.matrix.differential.limma.twoside <- function(expr, subset.main, subset.contrast, eBayes.trend=FALSE){
     names.expr = dimnames(expr)[[2]]
 
     design = cbind(rep(1,dim(expr)[2]), rep(0,dim(expr)[2]));
@@ -48,7 +48,8 @@ rbbt.dm.matrix.differential.limma.twoside <- function(expr, subset.main, subset.
     
     fit <- lmFit(expr, design);
 
-    fit <- eBayes(fit);
+    fit <- eBayes(fit,trend=eBayes.trend);
+
     sign = fit$t[,2] < 0;
     sign[is.na(sign)] = FALSE;
     fit$p.value[sign,2] = - fit$p.value[sign,2];
@@ -65,7 +66,7 @@ rbbt.dm.matrix.guess.log2 <- function(m, two.channel){
     }
 }
 
-rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALSE, outfile = NULL, key.field = NULL, two.channel = NULL, namespace = NULL){
+rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALSE, outfile = NULL, key.field = NULL, two.channel = NULL, namespace = NULL, eBayes.trend = FALSE){
     if (is.null(namespace)) namespace = rbbt.default_code("Hsa")
     data = data.matrix(rbbt.tsv(file));
     dimnames = dimnames(data)
@@ -92,9 +93,9 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALS
     }
 
     if (is.null(contrast)){
-      ratio = rbbt.dm.matrix.differential.ratio.oneside(subset(data, select=main)); 
+      ratio = rbbt.dm.matrix.differential.ratio.oneside(subset(data, select=main), eBayes.trend=eBayes.trend); 
     }else{
-      ratio = rbbt.dm.matrix.differential.ratio.twoside(subset(data, select=main), subset(data, select=contrast) ); 
+      ratio = rbbt.dm.matrix.differential.ratio.twoside(subset(data, select=main), subset(data, select=contrast), eBayes.trend=eBayes.trend ); 
     }
 
     if (is.null(contrast)){
