@@ -93,20 +93,20 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALS
     }
 
     if (is.null(contrast)){
-      ratio = rbbt.dm.matrix.differential.ratio.oneside(subset(data, select=main), eBayes.trend=eBayes.trend); 
+      ratio = rbbt.dm.matrix.differential.ratio.oneside(subset(data, select=main)); 
     }else{
-      ratio = rbbt.dm.matrix.differential.ratio.twoside(subset(data, select=main), subset(data, select=contrast), eBayes.trend=eBayes.trend ); 
+      ratio = rbbt.dm.matrix.differential.ratio.twoside(subset(data, select=main), subset(data, select=contrast)); 
     }
 
     if (is.null(contrast)){
         limma = NULL;
         tryCatch({ 
-            limma = rbbt.dm.matrix.differential.limma.oneside(data, main); 
+            limma = rbbt.dm.matrix.differential.limma.oneside(data, main, eBayes.trend=eBayes.trend); 
         }, error=function(x){
             cat("Limma failed for complete dataset. Trying just subset.\n", file=stderr());
             print(x, file=stderr());
             tryCatch({ 
-                limma = rbbt.dm.matrix.differential.limma.oneside(subset(data, select=main)); 
+                limma = rbbt.dm.matrix.differential.limma.oneside(subset(data, select=main), eBayes.trend=eBayes.trend); 
             }, error=function(x){
                 cat("Limma failed for subset dataset.\n", file=stderr());
                 print(x, file=stderr());
@@ -115,12 +115,12 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALS
     }else{
         limma = NULL;
         tryCatch({ 
-            limma = rbbt.dm.matrix.differential.limma.twoside(data, main, contrast); 
+            limma = rbbt.dm.matrix.differential.limma.twoside(data, main, contrast, eBayes.trend=eBayes.trend); 
         }, error=function(x){
             cat("Limma failed for complete dataset. Trying just subset.\n", file=stderr());
             print(x, file=stderr());
             tryCatch({ 
-                limma = rbbt.dm.matrix.differential.limma.twoside(subset(data, select=c(main, contrast)), main, contrast); 
+                limma = rbbt.dm.matrix.differential.limma.twoside(subset(data, select=c(main, contrast)), main, contrast, eBayes.trend=eBayes.trend); 
             }, error=function(x){
                 cat("Limma failed for subset dataset.\n", file=stderr());
                 print(x, file=stderr());
