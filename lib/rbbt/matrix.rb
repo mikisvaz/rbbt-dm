@@ -33,6 +33,10 @@ class Matrix
     @samples ||= TSV.parse_header(@data_file).fields
   end
 
+  def subsets=(subsets)
+    @subsets = subsets
+  end
+
   def subsets
     @subsets ||= begin
                    subsets = {}
@@ -138,6 +142,9 @@ class Matrix
         Misc.mean(v.compact)
       end
     end
-    Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
+    subsets = self.subsets
+    matrix = Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
+    matrix.subsets = subsets
+    matrix
   end
 end

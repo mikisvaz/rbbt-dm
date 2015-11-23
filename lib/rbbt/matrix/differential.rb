@@ -31,12 +31,18 @@ class Matrix
         log2 = true
         trend = true
         two_channel = false
-      else
+      when 'log2 ratio', 'transformed count'
         log2 = false
-        trend = true
+        trend = false
+        two_channel = false
+      else
+        Log.warn "Unkown value_type: #{value_type}"
+        log2 = true
+        trend = false
         two_channel = false
       end
 
+      file = file.find if Path === file
       FileUtils.mkdir_p File.dirname(file) unless file.nil? or File.exists? File.dirname(file)
 
       cmd = <<-EOS

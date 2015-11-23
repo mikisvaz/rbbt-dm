@@ -276,10 +276,15 @@ module RandomWalk
     end
   end
 
-  def self.permutations_up_down(size_up, size_down, total, missing = 0, times = 10000)
-    (1..times).collect do
-      score_up_down(Array.new(size_up){ (rand * total).to_i }.sort, Array.new(size_down){ (rand * total).to_i }.sort, total, missing).abs
+  def self.persisted_permutations(size, total, missing = 0, times = 10_000)
+    require 'rbbt/util/tc_cache'
+    repo_file = "/tmp/rw_repo9"
+    key = Misc.digest([size, total, missing, times, scoring_method].inspect)
+    cache = TCCache.open(repo_file, :float_array)
+    p = cache.cache(key) do
+      permutations(size, total, missing, times)
     end
+    p
   end
 
   def self.pvalue(permutations, score)
