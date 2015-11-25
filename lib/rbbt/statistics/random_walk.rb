@@ -290,7 +290,6 @@ module RandomWalk
   def self.pvalue(permutations, score)
     score = score.abs
     permutations.inject(1){|acc, per| 
-
       acc += 1 if per > score
       acc
     }.to_f / permutations.length
