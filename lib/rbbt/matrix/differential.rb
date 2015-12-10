@@ -47,7 +47,7 @@ class Matrix
 
       cmd = <<-EOS
 
-source('#{Rbbt.share.R["MA.R"].find}')
+source('#{Rbbt.share.R["MA.R"].find(:lib)}')
 
 data = rbbt.dm.matrix.differential(#{ R.ruby2R data_file }, 
   main = #{R.ruby2R(main_samples)}, 
