@@ -256,25 +256,41 @@ module RandomWalk
     end
   end
 
-  def self.persisted_permutations(size, total, missing = 0, times = 10_000)
-    repo_file = "/tmp/rw_repo7"
-    repo = Persist.open_tokyocabinet(repo_file, false, :float_array)
-    key = Misc.digest([size, total, missing, times, scoring_method].inspect)
-    begin
-      repo.read
-      if repo[key]
-        repo[key]
-      else
-        p = permutations(size, total, missing, times)
-        repo.write_and_close do
-          repo[key] = p
-        end
-        p
+  def self.permutations_up_down(up_size, down_size, total, missing = 0, times = 10_000)
+    if up_size == 0 or down_size == 0
+      [0] * times
+    else
+      (1..times).collect do
+        up_p = []
+        sample_without_replacement(total, up_size, up_p)
+        down_p = []
+        sample_without_replacement(total, down_size, down_p)
+
+        score_up_down(up_p, down_p, total, missing).abs
       end
-    ensure
-      repo.close
     end
   end
+
+
+  #def self.persisted_permutations(size, total, missing = 0, times = 10_000)
+  #  repo_file = "/tmp/rw_repo7"
+  #  repo = Persist.open_tokyocabinet(repo_file, false, :float_array)
+  #  key = Misc.digest([size, total, missing, times, scoring_method].inspect)
+  #  begin
+  #    repo.read
+  #    if repo[key]
+  #      repo[key]
+  #    else
+  #      p = permutations(size, total, missing, times)
+  #      repo.write_and_close do
+  #        repo[key] = p
+  #      end
+  #      p
+  #    end
+  #  ensure
+  #    repo.close
+  #  end
+  #end
 
   def self.persisted_permutations(size, total, missing = 0, times = 10_000)
     require 'rbbt/util/tc_cache'
@@ -287,12 +303,27 @@ module RandomWalk
     p
   end
 
+  def self.persisted_permutations_up_down(up_size, down_size, total, missing = 0, times = 10_000)
+    require 'rbbt/util/tc_cache'
+    repo_file = "/tmp/rw_repo9"
+    key = Misc.digest([up_size, down_size, total, missing, times, scoring_method].inspect)
+    cache = TCCache.open(repo_file, :float_array)
+    p = cache.cache(key) do
+      permutations_up_down(up_size, down_size, total, missing, times)
+    end
+    p
+  end
+
+
   def self.pvalue(permutations, score)
+    positive = score > 0
     score = score.abs
-    permutations.inject(1){|acc, per| 
+    pvalue = permutations.inject(1){|acc, per| 
       acc += 1 if per > score
       acc
     }.to_f / permutations.length
+
+    positive ? pvalue : - pvalue
   end
 
   COLORS = {
@@ -444,6 +475,59 @@ module OrderedList
       end
     end
   end
+
+  def pvalue_up_down(up_set, down_set, cutoff = 0.1, options = {})
+    up_set = Set.new(up_set.compact) unless Set === up_set
+    down_set = Set.new(down_set.compact) unless Set === down_set
+
+    options = Misc.add_defaults options, :permutations => 10000, :missing => 0
+    permutations, missing, persist_permutations = Misc.process_options options, :permutations, :missing, :persist_permutations
+
+    up_hits = hits(up_set)
+    down_hits = hits(down_set)
+   
+    return 1.0 if up_hits.empty? or down_hits.empty? # Repasar
+
+    target_score = RandomWalk.score_up_down(up_hits.sort, down_hits.sort, self.length, missing)
+
+    if persist_permutations 
+      permutations = RandomWalk.persisted_permutations_up_down(up_set.length, down_set.length, self.length, missing, permutations)
+      RandomWalk.pvalue(permutations, target_score)
+    else
+      # P-value computation
+      target_score_abs = target_score.abs
+
+      max = (permutations.to_f * cutoff).ceil
+
+      up_size = up_set.length
+      down_size = down_set.length
+
+      total = self.length
+      better_permutation_score_count = 1
+
+      if size == 0
+        1.0
+      else
+        (1..permutations).each do
+          up_p= []
+          RandomWalk.sample_without_replacement(total, up_size, up_p)
+          down_p= []
+          RandomWalk.sample_without_replacement(total, down_size, down_p)
+
+          permutation_score = RandomWalk.score_up_down(up_p.sort, down_p.sort, total, missing).abs
+          if permutation_score.abs > target_score_abs
+            better_permutation_score_count += 1
+          end
+
+          return 1.0 if better_permutation_score_count > max
+        end
+        p = (better_permutation_score_count.to_f + 1) / permutations
+        p = -p if target_score < 0
+        p
+      end
+    end
+  end
+
 
   def pvalue_weights(set, cutoff = 0.1, options = {})
     raise "No weight defined" if @weights.nil?
