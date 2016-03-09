@@ -160,7 +160,7 @@ module FDR
         v = v.first if Array === v
         [k, v] 
       }.sort{|a,b| 
-        a[1] <=> b[1]
+        a[1].abs <=> b[1].abs
       }.each{|p|
         keys << p[0]
         values << p[1]
