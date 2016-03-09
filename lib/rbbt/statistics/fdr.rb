@@ -107,16 +107,26 @@ module FDR
            VALUE new_ary = rb_ary_new();
            VALUE f;
 
-           double p, last = 1;
+           double p,op, last = 1;
 
            for (idx = total - 1; idx >= 0 ; idx-- ){
-             p  = (double) RFLOAT_VALUE(rb_ary_entry(ps, idx));
+             op  = (double) RFLOAT_VALUE(rb_ary_entry(ps, idx));
 
+             if (op < 0){
+               p = -op;
+             }else{
+               p = op;
+             }
 
              p = p * (double) total / (double) (idx + 1);
              if (p > last) p = last;
              last = p;
 
+             if (op < 0){
+               p = -p;
+             }else{
+               p = p;
+             }
              f = rb_float_new(p);
              rb_ary_unshift(new_ary, f);
            }
@@ -157,8 +167,8 @@ module FDR
       }
 
       if RUBY_VERSION[0] == "2"
-        values = FDR.adjust(values)
-        keys.zip(values).each do |k,v|
+        new_values = FDR.adjust(values)
+        keys.zip(new_values).each do |k,v|
           vs = data[k] 
           if field
             vs[field] = v

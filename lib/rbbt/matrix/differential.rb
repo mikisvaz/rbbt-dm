@@ -12,7 +12,7 @@ class Matrix
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
     main_samples = main_samples & all_samples
     contrast_samples = contrast_samples & all_samples
-    Persist.persist(name, :tsv, :persist => :update, :file => path,
+    Persist.persist(name, :tsv, :persist => true, :file => path,
                     :other => {:main => main_samples, :contrast => contrast_samples}, 
                     :prefix => "Diff", :dir => Matrix.matrix_dir.differential, :no_load => true) do |file|
 
