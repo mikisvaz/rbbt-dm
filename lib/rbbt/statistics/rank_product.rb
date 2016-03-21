@@ -46,7 +46,7 @@ module TSV
     if block_given?
       scores = fields.collect{|field| tsv.sort_by(field, true, &block)}
     else
-      scores = fields.collect{|field| tsv.sort_by(field, true){|gene,values| tsv.type == :single ? values.to_f : values.flatten.first.to_f}}
+      scores = fields.collect{|field| tsv.sort_by(field, true){|gene,values|  (tsv.type == :single or tsv.type == :list) ? values.to_f : values.flatten.first.to_f}}
     end
     positions = {}
     

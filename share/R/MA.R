@@ -79,6 +79,10 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALS
     main <- make.names(main);
     contrast <- make.names(contrast);
 
+    data[data == 0] = NA
+    good.rows = apply(is.na(data),1,sum) != dim(data)[2]
+    data = data[good.rows,]
+
     ids = rownames(data);
     if (is.null(key.field)){ key.field = "ID" }
 
@@ -137,7 +141,7 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALS
        result = data.frame(ratio = ratio)
     }
 
-    rownames(result) <- original.dimnames[[1]]
+    rownames(result) <- original.dimnames[[1]][good.rows]
 
    if (is.null(outfile)){
        return(result);

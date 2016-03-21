@@ -147,4 +147,14 @@ class Matrix
     matrix.subsets = subsets
     matrix
   end
+
+  def tsv(to_gene=true, identifiers = nil)
+    if to_gene
+      file =  self.to_gene(identifiers).data_file
+      file.tsv :persist => true, :persist_dir => Matrix.matrix_dir.persist, :type => :double, :merge => true, :cast => nil
+    else
+      self.data_file.tsv :persist => true, :persist_dir => Matrix.matrix_dir.persist, :type => :double, :merge => true, :cast => nil
+    end
+  end
+
 end
