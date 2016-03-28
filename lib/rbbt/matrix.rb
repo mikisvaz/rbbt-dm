@@ -42,14 +42,16 @@ class Matrix
                    subsets = {}
                    case @labels
                    when Path
-                     labels = @labels.tsv
-                     factors = labels.fields
-                     labels.through do |sample,values|
-                       factors.zip(values).each do |factor,value|
-                         subsets[factor] ||= {}
-                         subsets[factor][value] ||= []
-                         subsets[factor][value] << sample
-                       end
+                     if @labels.exists?
+                      labels = @labels.tsv
+                      factors = labels.fields
+                      labels.through do |sample,values|
+                        factors.zip(values).each do |factor,value|
+                          subsets[factor] ||= {}
+                          subsets[factor][value] ||= []
+                          subsets[factor][value] << sample
+                        end
+                      end
                      end
 
                    when TSV
@@ -149,7 +151,7 @@ class Matrix
   end
 
   def tsv(to_gene=true, identifiers = nil)
-    if to_gene
+    if to_gene and TSV.parse_header(self.data_file).key_field != "Ensembl Gene ID"
       file =  self.to_gene(identifiers).data_file
       file.tsv :persist => true, :persist_dir => Matrix.matrix_dir.persist, :type => :double, :merge => true, :cast => nil
     else
