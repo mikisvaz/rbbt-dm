@@ -221,6 +221,7 @@ module RandomWalk
   end
 
   set_scoring :score_fitted_weight
+  #set_scoring :score_plain_weight
 
 
   def self.combine(up, down)
@@ -294,7 +295,7 @@ module RandomWalk
 
   def self.persisted_permutations(size, total, missing = 0, times = 10_000)
     require 'rbbt/util/tc_cache'
-    repo_file = "/tmp/rw_repo9"
+    repo_file = "/tmp/rw_repo9_" << scoring_method.to_s
     key = Misc.digest([size, total, missing, times, scoring_method].inspect)
     cache = TCCache.open(repo_file, :float_array)
     p = cache.cache(key) do
@@ -305,7 +306,7 @@ module RandomWalk
 
   def self.persisted_permutations_up_down(up_size, down_size, total, missing = 0, times = 10_000)
     require 'rbbt/util/tc_cache'
-    repo_file = "/tmp/rw_repo9"
+    repo_file = "/tmp/rw_repo9_" << scoring_method.to_s
     key = Misc.digest([up_size, down_size, total, missing, times, scoring_method].inspect)
     cache = TCCache.open(repo_file, :float_array)
     p = cache.cache(key) do
@@ -318,10 +319,12 @@ module RandomWalk
   def self.pvalue(permutations, score)
     positive = score > 0
     score = score.abs
-    pvalue = permutations.inject(1){|acc, per| 
-      acc += 1 if per > score
-      acc
-    }.to_f / permutations.length
+
+    count = permutations.select{|per| per.abs >= score.abs }.length
+
+    pvalue = (0.0 + count) / (permutations.length)
+
+    pvalue = 1.0/permutations.length if pvalue == 0.0
 
     positive ? pvalue : - pvalue
   end
@@ -423,15 +426,6 @@ module OrderedList
     OrderedList.draw_hits(self, set, filename, options)
   end
 
-  #def pvalue(set, options = {})
-  #  set = Set.new(set.compact) unless Set === set
-  #  options = Misc.add_defaults options, :permutations => 10000, :missing => 0
-  #  hits = hits(set)
-  #  score = RandomWalk.score(hits.sort, self.length, 0)
-  #  permutations = RandomWalk.permutations(set.length, self.length, options[:missing], options[:permutations])
-  #  RandomWalk.pvalue(permutations, score)
-  #end
-
   def pvalue(set, cutoff = 0.1, options = {})
     set = Set.new(set.compact) unless Set === set
     options = Misc.add_defaults options, :permutations => 10000, :missing => 0
@@ -439,12 +433,13 @@ module OrderedList
 
     hits = hits(set)
    
-    return 1.0 if hits.empty?
+    return 1.0 if hits.length < 3
 
     target_score = RandomWalk.score(hits.sort, self.length, missing)
+    total = self.length
 
-    if persist_permutations
-      permutations = RandomWalk.persisted_permutations(set.length, self.length, missing, permutations)
+    if persist_permutations 
+      permutations = RandomWalk.persisted_permutations(hits.length, self.length, missing, permutations)
       RandomWalk.pvalue(permutations, target_score)
     else
       # P-value computation
@@ -452,27 +447,23 @@ module OrderedList
 
       max = (permutations.to_f * cutoff).ceil
 
-      size = set.length
+      size = hits.length
       total = self.length
       better_permutation_score_count = 1
-      if size == 0
-        1.0
-      else
-        (1..permutations).each do
-          p= []
-          RandomWalk.sample_without_replacement(total, size, p)
+      (1..permutations).each do
+        p= []
+        RandomWalk.sample_without_replacement(total, size, p)
 
-          permutation_score = RandomWalk.score(p.sort, total, missing).abs
-          if permutation_score.abs > target_score_abs
-            better_permutation_score_count += 1
-          end
-
-          return 1.0 if better_permutation_score_count > max
+        permutation_score = RandomWalk.score(p.sort, total, missing).abs
+        if permutation_score.abs > target_score_abs
+          better_permutation_score_count += 1
         end
-        p = (better_permutation_score_count.to_f + 1) / permutations
-        p = -p if target_score < 0
-        p
+
+        return 1.0 if better_permutation_score_count > max
       end
+      p = (better_permutation_score_count.to_f + 1) / permutations
+      p = -p if target_score < 0
+      p
     end
   end
 
@@ -486,12 +477,12 @@ module OrderedList
     up_hits = hits(up_set)
     down_hits = hits(down_set)
    
-    return 1.0 if up_hits.empty? or down_hits.empty? # Repasar
+    return 1.0 if up_hits.length + down_hits.length < 3
 
     target_score = RandomWalk.score_up_down(up_hits.sort, down_hits.sort, self.length, missing)
 
     if persist_permutations 
-      permutations = RandomWalk.persisted_permutations_up_down(up_set.length, down_set.length, self.length, missing, permutations)
+      permutations = RandomWalk.persisted_permutations_up_down(up_hits.length, down_hits.length, self.length, missing, permutations)
       RandomWalk.pvalue(permutations, target_score)
     else
       # P-value computation
@@ -539,7 +530,7 @@ module OrderedList
 
     hits = hits(set)
 
-    return 1.0 if hits.empty?
+    return 1.0 if hits.length < 3
 
     target_score = RandomWalk.score_weights(hits.sort, @weights, @total_weights, self.length, 0)
     target_score_abs = target_score.abs
@@ -557,7 +548,7 @@ module OrderedList
         RandomWalk.sample_without_replacement(total, size, p)
 
         permutation_score = RandomWalk.score_weights(p.sort, @weights, @total_weights, total, missing).abs
-        if permutation_score.abs > target_score_abs
+        if permutation_score.abs >= target_score_abs
           better_permutation_score_count += 1
         end
 
@@ -574,7 +565,7 @@ module TSV
 
   def self.rank_enrichment_for_list(list, hits, options = {})
     cutoff = options[:cutoff]
-    list.extend OrderedList
+    list.extend OrderedList unless OrderedList === list
     if cutoff
       list.pvalue(hits, cutoff, options)
     else
@@ -585,7 +576,7 @@ module TSV
   def self.rank_enrichment(tsv, list, options = {})
     masked = options[:masked]
     if tsv.fields
-      res = TSV.setup({}, :cast => :to_f, :type => :double, :key_field => tsv.key_field, :fields => ["p-value", tsv.fields.first]) 
+      res = TSV.setup({}, :cast => :to_f, :type => :double, :key_field => tsv.key_field, :fields => ["p-value", tsv.fields.first, "Hits"]) 
     else
       res = TSV.setup({}, :cast => :to_f, :type => :double) 
     end
@@ -597,9 +588,12 @@ module TSV
           next if masked and masked.include? key
           values = values.flatten.compact.reject{|v| v.empty?}
           matches = (values.respond_to?(:subset) ? values.subset(list) :  values & list).compact
-          next if matches.length < 2
+          next if matches.length < 3
+          list.extend OrderedList unless OrderedList === list
+          total = list.length
+          hits = list.hits(values).collect{|p| p.to_f / total}
           pvalue = rank_enrichment_for_list(list, values, options)
-          res[key] = [pvalue, matches]
+          res[key] = [pvalue, matches, hits]
         end
       end
     end
