@@ -576,7 +576,7 @@ module TSV
   def self.rank_enrichment(tsv, list, options = {})
     masked = options[:masked]
     if tsv.fields
-      res = TSV.setup({}, :cast => :to_f, :type => :double, :key_field => tsv.key_field, :fields => ["p-value", tsv.fields.first, "Hits"]) 
+      res = TSV.setup({}, :cast => :to_f, :type => :double, :key_field => tsv.key_field, :fields => ["p-value", tsv.fields.first, "Rank"]) 
     else
       res = TSV.setup({}, :cast => :to_f, :type => :double) 
     end
