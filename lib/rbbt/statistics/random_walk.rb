@@ -585,7 +585,7 @@ module TSV
     tsv.with_monitor :desc => "Rank enrichment" do
       tsv.with_unnamed do
         tsv.through do |key, values|
-          next if masked and masked.include? key
+          next if masked and masked.include? key or values.nil?
           values = values.flatten.compact.reject{|v| v.empty?}
           matches = (values.respond_to?(:subset) ? values.subset(list) :  values & list).compact
           next if matches.length < 3
