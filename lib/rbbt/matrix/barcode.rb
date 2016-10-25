@@ -41,6 +41,7 @@ rbbt.GE.barcode.mode(#{ R.ruby2R self.data_file }, #{ R.ruby2R outfile }, #{ R.r
       [key, bars]
       end
     end
+
     Misc.sensiblewrite(outfile, dumper.stream)
   end
 

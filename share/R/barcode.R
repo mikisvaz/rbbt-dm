@@ -31,7 +31,6 @@ rbbt.GE.barcode.mode <- function(matrix_file, output_file, sd.factor = 2, key.fi
   data.mean = rowMeans(data, na.rm=T)
 
   data.mode = apply(data, 1, function(x){ mode = rbbt.get.modes(x)$modes[1]; lower = x[x <= mode]; return(c(lower, mode, lower+mode));})
-  #data.mode = apply(data, 1, function(x){ mode = mean(x); lower = x[x < mode]; return(c(lower, mode, lower+mode));})
   data.empty = sapply(data.mode,function(x){ length(x) < 3})
 
   data = data[rownames(data)[!data.empty],]
@@ -43,7 +42,7 @@ rbbt.GE.barcode.mode <- function(matrix_file, output_file, sd.factor = 2, key.fi
 
   file.barcode = file(output_file, 'w')
 
-  cat("#:type=:list#:cast=:to_i\n", file = file.barcode)
+  cat("#: :type=:list#:cast=:to_i\n", file = file.barcode)
   cat("#", file = file.barcode)
   cat(key.field, file = file.barcode)
   cat("\t", file = file.barcode)

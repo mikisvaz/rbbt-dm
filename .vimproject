@@ -15,6 +15,7 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
     hypergeometric.rb
     random_walk.rb
     rank_product.rb
+    fisher.rb
    }
    plots=plots{
     bar.rb

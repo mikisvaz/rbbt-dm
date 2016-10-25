@@ -11,17 +11,17 @@ class Matrix
   end
 
   attr_accessor :data_file, :labels, :value_type, :format, :organism, :identifiers
-  def initialize(data_file, labels, value_type, format, organism=nil, identifiers=nil)
+  def initialize(data_file, labels = nil, value_type = nil, format = nil, organism=nil, identifiers=nil)
     @data_file = data_file
-    @labels = labels
-    @value_type = value_type
+    @labels = labels 
+    @value_type = value_type || 'count'
     @format = format
+    _header = nil
     @format ||=  begin
                    _header ||= TSV.parse_header(@data_file)
                    _header.key_field || "ID"
                  end
     @organism = organism 
-    _header = nil
     @organism ||=  begin
                      _header ||= TSV.parse_header(@data_file)
                      _header.namespace || Organism.default_code("Hsa")
@@ -166,7 +166,7 @@ class Matrix
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
 
     file = Persist.persist(data_file, :tsv, :prefix => "Barcode R #{factor}", :dir => Matrix.matrix_dir.barcode, :no_load => true) do |filename|
-      barcode(filename, factor)
+      barcode(filename, factor).to_list
     end
     subsets = self.subsets
     matrix = Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
