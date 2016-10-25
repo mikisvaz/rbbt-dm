@@ -150,12 +150,50 @@ class Matrix
     matrix
   end
 
+  def to_barcode_ruby(factor = 2)
+    name = data_file =~ /:>/ ? File.basename(data_file) : data_file
+
+    file = Persist.persist(data_file, :tsv, :prefix => "Barcode #{factor}", :dir => Matrix.matrix_dir.barcode, :no_load => true) do |filename|
+      barcode_ruby(filename, factor)
+    end
+    subsets = self.subsets
+    matrix = Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
+    matrix.subsets = subsets
+    matrix
+  end
+
+  def to_barcode(factor = 2)
+    name = data_file =~ /:>/ ? File.basename(data_file) : data_file
+
+    file = Persist.persist(data_file, :tsv, :prefix => "Barcode R #{factor}", :dir => Matrix.matrix_dir.barcode, :no_load => true) do |filename|
+      barcode(filename, factor)
+    end
+    subsets = self.subsets
+    matrix = Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
+    matrix.subsets = subsets
+    matrix
+  end
+
+  def to_activity(factor = 2)
+    require 'rbbt/tsv/change_id'
+
+    name = data_file =~ /:>/ ? File.basename(data_file) : data_file
+
+    file = Persist.persist(data_file, :tsv, :prefix => "Activity #{factor}", :dir => Matrix.matrix_dir.barcode, :no_load => true) do |filename|
+      activity_cluster(filename, factor)
+    end
+    subsets = self.subsets
+    matrix = Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
+    matrix.subsets = subsets
+    matrix
+  end
+
   def tsv(to_gene=true, identifiers = nil)
     if to_gene and TSV.parse_header(self.data_file).key_field != "Ensembl Gene ID"
       file =  self.to_gene(identifiers).data_file
-      file.tsv :persist => true, :persist_dir => Matrix.matrix_dir.persist, :type => :double, :merge => true, :cast => nil
+      file.tsv :persist => true, :persist_dir => Matrix.matrix_dir.persist, :type => :double, :merge => true
     else
-      self.data_file.tsv :persist => true, :persist_dir => Matrix.matrix_dir.persist, :type => :double, :merge => true, :cast => nil
+      self.data_file.tsv :persist => true, :persist_dir => Matrix.matrix_dir.persist, :merge => true
     end
   end
 
