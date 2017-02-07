@@ -158,7 +158,7 @@ module FDR
       data.collect{|k,vs|
         v = field.nil? ? vs : vs[field]
         v = v.first if Array === v
-        [k, v] 
+        [k, v.to_f] 
       }.sort{|a,b| 
         a[1].abs <=> b[1].abs
       }.each{|p|
