@@ -1,5 +1,6 @@
 rbbt.GE.barcode <- function(matrix_file, output_file, sd.factor = 2, key.field = "Ensembl Gene ID"){
-  data = rbbt.tsv(matrix_file)
+  data = rbbt.tsv.numeric(matrix_file)
+
   data.mean = rowMeans(data, na.rm=T)
   data.sd = apply(data, 1, sd, na.rm=T)
   data.threshold = as.matrix(data.mean) + sd.factor * as.matrix(data.sd)
@@ -27,8 +28,7 @@ rbbt.GE.barcode <- function(matrix_file, output_file, sd.factor = 2, key.field =
 }
 
 rbbt.GE.barcode.mode <- function(matrix_file, output_file, sd.factor = 2, key.field = "Ensembl Gene ID"){
-  data = rbbt.tsv(matrix_file)
-  data.mean = rowMeans(data, na.rm=T)
+  data = rbbt.tsv.numeric(matrix_file)
 
   data.mode = apply(data, 1, function(x){ mode = rbbt.get.modes(x)$modes[1]; lower = x[x <= mode]; return(c(lower, mode, lower+mode));})
   data.empty = sapply(data.mode,function(x){ length(x) < 3})
@@ -67,7 +67,8 @@ rbbt.GE.activity_cluster <- function(matrix_file, output_file, key.field = "ID")
 
     library(mclust)
 
-    data = rbbt.tsv(matrix_file)
+    data = rbbt.tsv.numeric(matrix_file)
+
     classes = apply(data,2,function(row){Mclust(row)$classification})
 
     rownames(classes) <- rownames(data)

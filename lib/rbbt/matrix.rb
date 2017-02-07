@@ -166,7 +166,7 @@ class Matrix
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
 
     file = Persist.persist(data_file, :tsv, :prefix => "Barcode R #{factor}", :dir => Matrix.matrix_dir.barcode, :no_load => true) do |filename|
-      barcode(filename, factor).to_list
+      barcode(filename, factor)
     end
     subsets = self.subsets
     matrix = Matrix.new file, labels, value_type, "Ensembl Gene ID", organism

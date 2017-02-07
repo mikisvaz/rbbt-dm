@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib".freeze]
   s.authors = ["Miguel Vazquez".freeze]
   s.date = "2017-02-07"
+  s.date = "2016-12-01"
   s.description = "Data-mining and statistics".freeze
   s.email = "miguel.vazquez@fdi.ucm.es".freeze
   s.extra_rdoc_files = [
@@ -43,7 +44,7 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/mikisvaz/rbbt-phgx".freeze
   s.rubygems_version = "2.6.6".freeze
   s.summary = "Data-mining and statistics".freeze
-  s.test_files = ["test/test_helper.rb".freeze, "test/rbbt/vector/model/test_svm.rb".freeze, "test/rbbt/vector/test_model.rb".freeze, "test/rbbt/network/test_paths.rb".freeze, "test/rbbt/matrix/test_barcode.rb".freeze, "test/rbbt/statistics/test_random_walk.rb".freeze, "test/rbbt/statistics/test_fdr.rb".freeze, "test/rbbt/statistics/test_hypergeometric.rb".freeze, "test/rbbt/statistics/test_fisher.rb".freeze]
+  s.test_files = ["test/rbbt/network/test_paths.rb".freeze, "test/rbbt/statistics/test_fdr.rb".freeze, "test/rbbt/statistics/test_random_walk.rb".freeze, "test/rbbt/statistics/test_fisher.rb".freeze, "test/rbbt/statistics/test_hypergeometric.rb".freeze, "test/rbbt/vector/model/test_svm.rb".freeze, "test/rbbt/vector/test_model.rb".freeze, "test/rbbt/matrix/test_barcode.rb".freeze, "test/test_helper.rb".freeze]
 
   if s.respond_to? :specification_version then
     s.specification_version = 4
