@@ -155,8 +155,13 @@ module FDR
 
       values = []
       keys = []
+
+      field_pos = (field === String) ?  data.fields.index(field) : field
+
+      field_pos = 0 if field_pos.nil? and tsv.type != :single
+
       data.collect{|k,vs|
-        v = field.nil? ? vs : vs[field]
+        v = field_pos.nil? ? vs : vs[field_pos]
         v = v.first if Array === v
         [k, v.to_f] 
       }.sort{|a,b| 
@@ -171,7 +176,7 @@ module FDR
         keys.zip(new_values).each do |k,v|
           vs = data[k] 
           if field
-            vs[field] = v
+            vs[field_pos] = v
           else
             if Array === vs
               vs[0] = v

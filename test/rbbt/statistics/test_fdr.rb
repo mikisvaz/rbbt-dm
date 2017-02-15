@@ -34,7 +34,6 @@ class TestFDR < Test::Unit::TestCase
 
     assert_equal(clean(@r_adj), clean(FDR.adjust_fast_self(copy(@values)))) if RUBY_VERSION[0] != "2"
   end
-
 end
 
 
