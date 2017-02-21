@@ -156,9 +156,9 @@ module FDR
       values = []
       keys = []
 
-      field_pos = (field === String) ?  data.fields.index(field) : field
+      field_pos = (String === field ) ?  data.fields.index(field) : field
 
-      field_pos = 0 if field_pos.nil? and tsv.type != :single
+      field_pos = 0 if field_pos.nil? and data.respond_to?(:type) and data.type != :single
 
       data.collect{|k,vs|
         v = field_pos.nil? ? vs : vs[field_pos]
