@@ -11,7 +11,7 @@ class KnowledgeBase
   def matrix(name)
     matrix, options = @matrix_registry[name]
 
-    return matrix if Matrix === matrix
+    return matrix if RbbtMatrix === matrix
 
     Path.setup(matrix) if not Path === matrix and File.exists? matrix
 
@@ -35,7 +35,7 @@ class KnowledgeBase
       value_type = TSV.parse_header(data.find).key_field if data
       value_type ||= "Unknown ID"
 
-      Matrix.new data, labels, value_type, format, organism, identifiers
+      RbbtMatrix.new data, labels, value_type, format, organism, identifiers
     else
     end
   end

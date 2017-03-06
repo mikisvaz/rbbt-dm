@@ -1,6 +1,6 @@
 require 'rbbt/util/R'
 
-class Matrix
+class RbbtMatrix
   def differential(main, contrast, path = nil)
     all_samples = self.samples
     if Array === main and Array === contrast
@@ -17,7 +17,7 @@ class Matrix
 
     Persist.persist(name, :tsv, :persist => true, :file => path,
                     :other => {:main => main_samples, :contrast => contrast_samples}, 
-                    :prefix => "Diff", :dir => Matrix.matrix_dir.differential, :no_load => true) do |file|
+                    :prefix => "Diff", :dir => RbbtMatrix.matrix_dir.differential, :no_load => true) do |file|
 
       raise if file.nil?
 

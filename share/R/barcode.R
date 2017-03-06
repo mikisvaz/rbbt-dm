@@ -69,10 +69,22 @@ rbbt.GE.activity_cluster <- function(matrix_file, output_file, key.field = "ID")
 
     data = rbbt.tsv.numeric(matrix_file)
 
-    classes = apply(data,2,function(row){Mclust(row)$classification})
+    classes = apply(data,1,function(row){
+                    row.na = is.na(row)
+                    clust = rep(NA, length(row))
+                    if (sum(row.na) <= length(row) - 5){
+                        clust[!row.na] = Mclust(row[!row.na], prior=priorControl())$classification
+                    }
+                    str(row)
+                    str(clust)
+                    clust
+    })
+
+    classes = data.frame(t(classes))
 
     rownames(classes) <- rownames(data)
-    names(classes) <- c("Cluster")
+    names(classes) <- names(data)
 
+    str(classes)
     rbbt.tsv.write(output_file, classes, key.field)
 }

@@ -1,6 +1,6 @@
 require 'rbbt/util/R'
 
-class Matrix
+class RbbtMatrix
   def barcode(outfile, factor = 2)
 
     FileUtils.mkdir_p File.dirname(outfile) unless outfile.nil? or File.exists? File.dirname(outfile)
@@ -45,7 +45,7 @@ rbbt.GE.barcode.mode(#{ R.ruby2R self.data_file }, #{ R.ruby2R outfile }, #{ R.r
     Misc.sensiblewrite(outfile, dumper.stream)
   end
 
-  def activity_cluster(outfile, factor = 2)
+  def activity_cluster(outfile, clusters = 2)
 
     FileUtils.mkdir_p File.dirname(outfile) unless outfile.nil? or File.exists? File.dirname(outfile)
     cmd =<<-EOF

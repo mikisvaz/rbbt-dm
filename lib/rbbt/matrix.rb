@@ -1,7 +1,7 @@
 require 'rbbt-util'
 require 'rbbt/sources/organism'
 
-class Matrix
+class RbbtMatrix
 
   class << self
     attr_accessor :matrix_dir
@@ -128,13 +128,27 @@ class Matrix
     [main_samples, contrast_samples]
   end
 
+  def to_average(identifiers = nil)
+    name = data_file =~ /:>/ ? File.basename(data_file) : data_file
+
+    file = Persist.persist(data_file, :tsv, :prefix => "Average", :dir => RbbtMatrix.matrix_dir.values, :no_load => true) do
+
+      data = data_file.tsv(:cast => :to_f, :type => :double)
+
+      data.to_list{|v| v.length > 1 ? Misc.mean(v) : v }
+    end
+    subsets = self.subsets
+    matrix = RbbtMatrix.new file, labels, value_type, "Ensembl Gene ID", organism
+    matrix.subsets = subsets
+    matrix
+  end
 
   def to_gene(identifiers = nil)
     require 'rbbt/tsv/change_id'
 
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
 
-    file = Persist.persist(data_file, :tsv, :prefix => "Gene", :dir => Matrix.matrix_dir.values, :no_load => true) do
+    file = Persist.persist(data_file, :tsv, :prefix => "Gene", :dir => RbbtMatrix.matrix_dir.values, :no_load => true) do
 
       data = data_file.tsv(:cast => :to_f)
 
@@ -145,7 +159,7 @@ class Matrix
       end
     end
     subsets = self.subsets
-    matrix = Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
+    matrix = RbbtMatrix.new file, labels, value_type, "Ensembl Gene ID", organism
     matrix.subsets = subsets
     matrix
   end
@@ -153,11 +167,11 @@ class Matrix
   def to_barcode_ruby(factor = 2)
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
 
-    file = Persist.persist(data_file, :tsv, :prefix => "Barcode #{factor}", :dir => Matrix.matrix_dir.barcode, :no_load => true) do |filename|
+    file = Persist.persist(data_file, :tsv, :prefix => "Barcode #{factor}", :dir => RbbtMatrix.matrix_dir.barcode, :no_load => true) do |filename|
       barcode_ruby(filename, factor)
     end
     subsets = self.subsets
-    matrix = Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
+    matrix = RbbtMatrix.new file, labels, value_type, "Ensembl Gene ID", organism
     matrix.subsets = subsets
     matrix
   end
@@ -165,11 +179,11 @@ class Matrix
   def to_barcode(factor = 2)
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
 
-    file = Persist.persist(data_file, :tsv, :prefix => "Barcode R #{factor}", :dir => Matrix.matrix_dir.barcode, :no_load => true) do |filename|
+    file = Persist.persist(data_file, :tsv, :prefix => "Barcode R #{factor}", :dir => RbbtMatrix.matrix_dir.barcode, :no_load => true) do |filename|
       barcode(filename, factor)
     end
     subsets = self.subsets
-    matrix = Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
+    matrix = RbbtMatrix.new file, labels, value_type, "Ensembl Gene ID", organism
     matrix.subsets = subsets
     matrix
   end
@@ -179,11 +193,11 @@ class Matrix
 
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
 
-    file = Persist.persist(data_file, :tsv, :prefix => "Activity #{factor}", :dir => Matrix.matrix_dir.barcode, :no_load => true) do |filename|
+    file = Persist.persist(data_file, :tsv, :prefix => "Activity #{factor}", :dir => RbbtMatrix.matrix_dir.barcode, :no_load => true) do |filename|
       activity_cluster(filename, factor)
     end
     subsets = self.subsets
-    matrix = Matrix.new file, labels, value_type, "Ensembl Gene ID", organism
+    matrix = RbbtMatrix.new file, labels, value_type, "Ensembl Gene ID", organism
     matrix.subsets = subsets
     matrix
   end
@@ -191,9 +205,9 @@ class Matrix
   def tsv(to_gene=true, identifiers = nil)
     if to_gene and TSV.parse_header(self.data_file).key_field != "Ensembl Gene ID"
       file =  self.to_gene(identifiers).data_file
-      file.tsv :persist => true, :persist_dir => Matrix.matrix_dir.persist, :type => :double, :merge => true
+      file.tsv :persist => true, :persist_dir => RbbtMatrix.matrix_dir.persist, :type => :double, :merge => true
     else
-      self.data_file.tsv :persist => true, :persist_dir => Matrix.matrix_dir.persist, :merge => true
+      self.data_file.tsv :persist => true, :persist_dir => RbbtMatrix.matrix_dir.persist, :merge => true
     end
   end
 
