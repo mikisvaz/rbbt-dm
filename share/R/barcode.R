@@ -63,7 +63,7 @@ rbbt.GE.barcode.mode <- function(matrix_file, output_file, sd.factor = 2, key.fi
   close(file.barcode)
 }
 
-rbbt.GE.activity_cluster <- function(matrix_file, output_file, key.field = "ID"){
+rbbt.GE.activity_cluster <- function(matrix_file, output_file, key.field = "ID", clusters = c(2,3)){
 
     library(mclust)
 
@@ -73,10 +73,8 @@ rbbt.GE.activity_cluster <- function(matrix_file, output_file, key.field = "ID")
                     row.na = is.na(row)
                     clust = rep(NA, length(row))
                     if (sum(row.na) <= length(row) - 5){
-                        clust[!row.na] = Mclust(row[!row.na], prior=priorControl())$classification
+                        clust[!row.na] = densityMclust(row[!row.na], prior=priorControl(), G=clusters)$classification
                     }
-                    str(row)
-                    str(clust)
                     clust
     })
 
