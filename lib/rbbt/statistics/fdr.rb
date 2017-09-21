@@ -158,7 +158,7 @@ module FDR
 
       field_pos = (String === field ) ?  data.fields.index(field) : field
 
-      field_pos = 0 if field_pos.nil? and data.respond_to?(:type) and data.type != :single
+      field_pos = nil if data.respond_to?(:type) and data.type == :single
 
       data.collect{|k,vs|
         v = field_pos.nil? ? vs : vs[field_pos]
@@ -175,13 +175,13 @@ module FDR
         new_values = FDR.adjust(values)
         keys.zip(new_values).each do |k,v|
           vs = data[k] 
-          if field
+          if field_pos
             vs[field_pos] = v
           else
             if Array === vs
               vs[0] = v
             else
-              data[k] = vs
+              data[k] = v
             end
           end
         end

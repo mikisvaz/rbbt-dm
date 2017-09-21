@@ -1,4 +1,4 @@
-library(limma)
+rbbt.require('limma')
 
 #########################################################################
 # Model processing 
