@@ -104,7 +104,7 @@ double hypergeometric_c(double total, double support, double list, double found)
 
   def self.hypergeometric(count, positive, negative, total)
     #RSRuby.instance.phyper(count - 1, positive, negative, total, false).to_f
-    R.eval("phyper(#{ count } - 1, #{ positive }, #{ negative }, #{ total }, FALSE)").to_f
+    R.eval("phyper(#{ count } - 1, #{ positive }, #{ negative }, #{ total }, lower.tail=FALSE)").to_f
   end
 end
 
@@ -114,10 +114,11 @@ module TSV
     fields ||= self.fields
     fields = [fields] if String === fields or Symbol === fields
     rename = options.delete :rename
+    background = options.delete :background
 
     field_pos = fields.collect{|f| self.fields.index f}.compact
     persistence_path = self.respond_to?(:persistence_path)? self.persistence_path : nil
-    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts", :other => {:rename => rename, :persistence_path => persistence_path}) do 
+    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts", :other => {:background => background, :rename => rename, :persistence_path => persistence_path}) do 
       data ||= {}
 
       with_unnamed do
@@ -125,22 +126,26 @@ module TSV
         case type
         when :single
           through :key, field_pos do |key, value|
+            next if background and not background.include?(key)
             next if value.nil? 
             data[value] ||= []
             data[value] << key
           end
         when :double
           through :key, field_pos do |key, values|
+            next if background and not background.include?(key)
             values.flatten.compact.uniq.each{|value| data[value] ||= []; data[value] << key}
           end
         when :list
           through :key, field_pos do |key, values|
             next if values.nil?
+            next if background and not background.include?(key)
             values.compact.uniq.each{|value| data[value] ||= []; data[value] << key}
           end
         when :flat
           through :key, field_pos do |key, values|
             next if values.nil?
+            next if background and not background.include?(key)
             values.compact.uniq.each{|value| data[value] ||= []; data[value] << key}
           end
         end
@@ -182,7 +187,6 @@ module TSV
 
       selected = select :key => list.uniq
 
-      tsv_size = keys.length
       found = selected.keys.length
       Log.debug "Found #{found} of #{list.length} entities"
 
@@ -194,7 +198,14 @@ module TSV
         Log.debug "Using #{ list.length } as sample size"
       end
 
-      counts = annotation_counts fields, options[:persist], :rename => rename, :masked => masked
+      if background
+        tsv_size = background.length
+        counts = annotation_counts fields, options[:persist], :rename => rename, :masked => masked, :background => background
+      else
+        tsv_size = keys.length
+        counts = annotation_counts fields, options[:persist], :rename => rename, :masked => masked
+      end
+
 
       annotation_keys = Hash.new
       selected.with_unnamed do
@@ -248,8 +259,8 @@ module TSV
         elems = elems.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq if rename
         count = elems.length
         next if count < options[:min_support] or not counts.include? annotation
-        #pvalues[annotation] = RSRuby.instance.phyper(count - 1, counts[annotation], tsv_size - counts[annotation], total, false).to_f
         pvalues[annotation] = Hypergeometric.hypergeometric(count, counts[annotation], tsv_size - counts[annotation], total)
+        iii [annotation, elems, total, counts[annotation], tsv_size, pvalues[annotation]]
       end
 
       pvalues = FDR.adjust_hash! pvalues if options[:fdr]
