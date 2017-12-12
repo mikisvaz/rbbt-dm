@@ -260,7 +260,6 @@ module TSV
         count = elems.length
         next if count < options[:min_support] or not counts.include? annotation
         pvalues[annotation] = Hypergeometric.hypergeometric(count, counts[annotation], tsv_size - counts[annotation], total)
-        iii [annotation, elems, total, counts[annotation], tsv_size, pvalues[annotation]]
       end
 
       pvalues = FDR.adjust_hash! pvalues if options[:fdr]
