@@ -4,6 +4,7 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
  }
  lib=lib {
   rbbt=rbbt{
+   stan.rb
    matrix.rb
    matrix=matrix{
     knowledge_base.rb
