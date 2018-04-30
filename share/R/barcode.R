@@ -65,7 +65,7 @@ rbbt.GE.barcode.mode <- function(matrix_file, output_file, sd.factor = 2, key.fi
 
 rbbt.GE.activity_cluster <- function(matrix_file, output_file, key.field = "ID", clusters = c(2,3)){
 
-    library(mclust)
+    rbbt.require('mclust')
 
     data = rbbt.tsv.numeric(matrix_file)
 
