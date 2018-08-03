@@ -163,6 +163,7 @@ module FDR
       data.collect{|k,vs|
         v = field_pos.nil? ? vs : vs[field_pos]
         v = v.first if Array === v
+        v = 1.0 if v.nil?
         [k, v.to_f] 
       }.sort{|a,b| 
         a[1].abs <=> b[1].abs
