@@ -1,19 +1,21 @@
-require 'priority_queue'
+require 'fc'
 
 module Paths
 
   def self.dijkstra(adjacency, start_node, end_node = nil, max_steps = nil)
     return nil unless adjacency.include? start_node
 
-    active = PriorityQueue.new         
+    active = FastContainers::PriorityQueue.new(:max)
     distances = Hash.new { 1.0 / 0.0 } 
     parents = Hash.new                 
 
-    active[start_node] << 0
+    active.push(start_node, 0)
     best = 1.0 / 0.0
     until active.empty?
-      u = active.priorities.first
-      distance = active.shift
+      u = active.top
+      distance = active.top_key
+      active.pop
+
       distances[u] = distance
       d = distance + 1
       path = extract_path(parents, start_node, u)
@@ -21,12 +23,11 @@ module Paths
       adjacency[u].each do |v|
         next unless d < distances[v] and d < best # we can't relax this one
         best = d if (String === end_node ? end_node == v : end_node.include?(v))
-        active[v] << d if adjacency.include? v
+        active.push(v,d) if adjacency.include? v
         distances[v] = d
         parents[v] = u
       end    
     end
-
 
     if end_node
       end_node = end_node.select{|n| parents.keys.include? n}.first unless String === end_node
@@ -48,25 +49,28 @@ module Paths
   def self.weighted_dijkstra(adjacency, start_node, end_node = nil, threshold = nil, max_steps = nil)
     return nil unless adjacency.include? start_node
 
-    active = PriorityQueue.new         
+    active = FastContainers::PriorityQueue.new(:max)
     distances = Hash.new { 1.0 / 0.0 } 
     parents = Hash.new                 
 
-    active[start_node] << 0
+    #active[start_node] << 0
+    active.push(start_node, 0)
     best = 1.0 / 0.0
     found = false
     until active.empty?
-      u = active.priorities.first
-      distance = active.shift
+      u = active.top
+      distance = active.top_key
+      active.pop
       distances[u] = distance
       path = extract_path(parents, start_node, u)
       next if path.length > max_steps if max_steps 
       next if not adjacency.include?(u) or (adjacency[u].nil? or adjacency[u].empty? )
       Misc.zip_fields(adjacency[u]).each do |v,node_dist|
+        node_dist = node_dist.to_f
         next if node_dist.nil? or (threshold and node_dist > threshold)
         d = distance + node_dist
         next unless d < distances[v] and d < best # we can't relax this one
-        active[v] << d
+        active.push(v, d)
         distances[v] = d
         parents[v] = u
         if (String === end_node ? end_node == v : end_node.include?(v))

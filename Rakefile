@@ -15,7 +15,7 @@ begin
 
     gem.add_dependency('rbbt-util')
     gem.add_dependency('RubyInline')
-    gem.add_dependency('priority_queue')
+    gem.add_dependency('priority_queue_cxx')
     gem.add_dependency('distribution')
     gem.add_dependency('png')
     # gem.add_dependency('rsruby')

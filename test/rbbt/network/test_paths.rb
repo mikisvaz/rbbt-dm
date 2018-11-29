@@ -7,45 +7,42 @@ require 'set'
 
 class TestNetwork < Test::Unit::TestCase
   def _test_dijsktra
-    string = STRING.protein_protein.tsv :persist => false, :fields => ["Interactor Ensembl Protein ID"], :type => :flat 
-    string.unnamed = true
+    network_txt=<<-EOF
+#: :sep=/\s/#:type=:flat
+#Start End
+N1 N2
+N2 N3 N4
+N4 N5
+    EOF
+    network = TSV.open(StringIO.new(network_txt))
 
-    start_node = "ENSP00000256078"
-    end_node = "ENSP00000306245"
+    start_node = "N1"
+    end_node = "N5"
 
-    path = Paths.dijkstra(string, start_node, [end_node])
-
-    assert path != nil
-    assert path.include? start_node
-    assert path.include? end_node
+    path = Paths.dijkstra(network, start_node, [end_node])
+    assert_equal %w(N1 N2 N4), path.reverse
   end
 
   def test_weighted_dijsktra
-    string = STRING.protein_protein.tsv 
-    string.unnamed = true
+    network_txt=<<-EOF
+#: :sep=/\s/#:type=:double
+#Start End Score
+N1 N2|N5 1|10
+N2 N3|N4 1|1
+N4 N5 1
+    EOF
+    network = TSV.open(StringIO.new(network_txt))
 
-    string.process "Score" do |scores|
-      scores.collect{|score| 1000 - score.to_i}
-    end
+    start_node = "N1"
+    end_node = "N5"
 
-    start_node = "ENSP00000256078"
-    end_node = "ENSP00000306245"
+    path = Paths.weighted_dijkstra(network, start_node, [end_node])
+    assert_equal %w(N1 N2 N4 N5), path.reverse
 
-    path = Paths.weighted_dijkstra(string, start_node, end_node)
-
-    assert path != nil
-    assert path.include? start_node
-    assert path.include? end_node
-    
-    path = Paths.weighted_dijkstra(string, start_node, Set.new([end_node]))
-
-    assert path != nil
-    assert path.include? start_node
-    assert path.include? end_node
- 
   end
 
-  def _test_random_weighted_dijsktra
+
+  def __test_random_weighted_dijsktra
     string = STRING.protein_protein.tsv 
 
     string.process "Score" do |scores|
