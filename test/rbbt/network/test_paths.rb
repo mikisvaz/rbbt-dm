@@ -6,7 +6,7 @@ require 'set'
 
 
 class TestNetwork < Test::Unit::TestCase
-  def _test_dijsktra
+  def test_dijsktra
     network_txt=<<-EOF
 #: :sep=/\s/#:type=:flat
 #Start End

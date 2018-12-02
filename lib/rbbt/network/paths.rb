@@ -5,7 +5,7 @@ module Paths
   def self.dijkstra(adjacency, start_node, end_node = nil, max_steps = nil)
     return nil unless adjacency.include? start_node
 
-    active = FastContainers::PriorityQueue.new(:max)
+    active = FastContainers::PriorityQueue.new(:min)
     distances = Hash.new { 1.0 / 0.0 } 
     parents = Hash.new                 
 
@@ -49,7 +49,7 @@ module Paths
   def self.weighted_dijkstra(adjacency, start_node, end_node = nil, threshold = nil, max_steps = nil)
     return nil unless adjacency.include? start_node
 
-    active = FastContainers::PriorityQueue.new(:max)
+    active = FastContainers::PriorityQueue.new(:min)
     distances = Hash.new { 1.0 / 0.0 } 
     parents = Hash.new                 
 
