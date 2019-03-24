@@ -176,6 +176,26 @@ class RbbtMatrix
     matrix
   end
 
+  def to_name(identifiers = nil)
+    require 'rbbt/tsv/change_id'
+
+    name = data_file =~ /:>/ ? File.basename(data_file) : data_file
+
+    file = Persist.persist(data_file, :tsv, :prefix => "Name", :check => [data_file], :dir => RbbtMatrix.matrix_dir.values, :no_load => true) do
+
+      data = data_file.tsv(:cast => :to_f)
+
+      identifiers = [identifiers, @identifiers, data.identifiers, Organism.identifiers(organism)].flatten.compact.uniq
+
+      data.change_key("Associated Gene Name", :identifiers => identifiers.reverse) do |v|
+        Misc.mean(v.compact)
+      end
+    end
+    subsets = self.subsets
+    matrix = RbbtMatrix.new file, labels, value_type, "Associated Gene Name", organism
+    matrix.subsets = subsets
+    matrix
+  end
   def to_barcode_ruby(factor = 2)
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
 
