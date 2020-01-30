@@ -34,7 +34,7 @@ class TestVectorModel < Test::Unit::TestCase
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 labels = scan("#{ feature_file }.class", what=numeric());
 features = cbind(features, class = labels);
-library(e1071)
+rbbt.require('e1071')
 model = svm(class ~ ., data = features) 
 save(model, file="#{ model_file }");
           EOF

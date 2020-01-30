@@ -9,7 +9,7 @@ class SVMModel < VectorModel
 
     @train_model =<<-EOF
 library(e1071);
-model = svm(class ~ ., data = features);
+model = svm(class ~ ., data = features, scale=c(0));
     EOF
  
     @eval_model =<<-EOF

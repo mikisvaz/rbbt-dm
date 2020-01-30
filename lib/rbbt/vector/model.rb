@@ -57,6 +57,11 @@ cat(paste(label, sep="\\n"));
     @labels = []
   end
 
+  def clear
+    @features = []
+    @labels = []
+  end
+
   def add(element, label = nil)
     @features << extract_features.call(element)
     @labels << label unless label.nil?
@@ -118,5 +123,54 @@ cat(paste(label, sep="\\n"));
     end
 
     acc
+  end
+
+  def cross_validation(folds = 10)
+
+    res = TSV.setup({}, "Fold~TP,TN,FP,FN,P,R,F1#:type=:list")
+
+    feature_folds = Misc.divide(@features, folds)
+    labels_folds = Misc.divide(@labels, folds)
+
+    folds.times do |fix|
+
+      test_set = feature_folds[fix]
+      train_set = feature_folds.values_at(*((0..9).to_a - [fix])).inject([]){|acc,e| acc += e; acc}
+
+      test_labels = labels_folds[fix]
+      train_labels = labels_folds.values_at(*((0..9).to_a - [fix])).flatten
+
+      tp, fp, tn, fn, pr, re, f1 = [0, 0, 0, 0, nil, nil, nil]
+
+      @features = train_set
+      @labels = train_labels
+      self.train
+      predictions = self.eval_list test_set, false
+
+      test_labels.zip(predictions).each do |gs,pred|
+        gs = gs.to_i
+        pred = pred > 0.5 ? 1 : 0
+        tp += 1 if gs == pred && gs == 1
+        tn += 1 if gs == pred && gs == 0
+        fp += 1 if gs == 0 && pred == 1
+        fn += 1 if gs == 1 && pred == 0
+      end
+
+      p = tp + fn
+      pp = tp + fp
+
+      pr = tp.to_f / pp
+      re = tp.to_f / p
+
+      f1 = (2.0 * tp) / (2.0 * tp + fp + fn) 
+
+      Misc.fingerprint([tp,tn,fp,fn,pr,re,f1])
+
+      Log.debug "CV Fold #{fix} P:#{"%.3f" % pr} R:#{"%.3f" % re} F1:#{"%.3f" % f1}"
+
+      res[fix] = [tp,tn,fp,fn,pr,re,f1]
+    end
+
+    res
   end
 end
