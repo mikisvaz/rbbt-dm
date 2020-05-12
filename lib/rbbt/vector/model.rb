@@ -4,6 +4,20 @@ class VectorModel
   attr_accessor :directory, :model_file, :extract_features, :train_model, :eval_model
   attr_accessor :features, :labels
 
+  def self.R_run(model_file, features, labels, code)
+    TmpFile.with_file do |feature_file|
+      Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
+      Open.write(feature_file + '.class', labels * "\n")
+
+      R.run <<-EOF
+features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
+labels = scan("#{ feature_file }.class");
+features = cbind(features, class = labels);
+#{code}
+      EOF
+    end
+  end
+
   def self.R_train(model_file, features, labels, code)
     TmpFile.with_file do |feature_file|
       Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
@@ -72,8 +86,12 @@ cat(paste(label, sep="\\n"));
     when Proc === train_model
       train_model.call(@model_file, @features, @labels)
     when String === train_model
-      SVMModel.R_train(@model_file,  @features, @labels, train_model)
+      VectorModel.R_train(@model_file,  @features, @labels, train_model)
     end
+  end
+
+  def run(code)
+    VectorModel.R_run(@model_file,  @features, @labels, code)
   end
 
   def eval(element)
@@ -81,7 +99,7 @@ cat(paste(label, sep="\\n"));
     when Proc === eval_model
       eval_model.call(@model_file, extract_features.call(element), false)
     when String === eval_model
-      SVMModel.R_eval(@model_file,  extract_features.call(element), false, eval_model)
+      VectorModel.R_eval(@model_file,  extract_features.call(element), false, eval_model)
     end
   end
 
