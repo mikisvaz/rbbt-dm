@@ -38,7 +38,7 @@ rbbt.GE.barcode.mode(#{ R.ruby2R self.data_file }, #{ R.ruby2R outfile }, #{ R.r
           end
         end
         key = key.first if Array === key
-      [key, bars]
+        [key, bars]
       end
     end
 

@@ -11,7 +11,7 @@ class TestBarcode < Test::Unit::TestCase
     data["G4"] = [6,6,1,1,1,1]
 
     TmpFile.with_file(data.to_s) do |file|
-      m = Matrix.new file
+      m = RbbtMatrix.new file
       m.barcode(file+'.barcode')
       tsv =  TSV.open(file+'.barcode')
       assert tsv["G2"] = [0,1,0,1,0,1]
