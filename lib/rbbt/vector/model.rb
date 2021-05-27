@@ -46,10 +46,10 @@ save(model, file='#{model_file}')
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 load(file="#{model_file}");
 #{code}
-cat(paste(label, sep="\\n"));
+cat(paste(label, sep="\\n", collapse="\\n"));
         EOF
-
-        res = io.read.sub(/WARNING: .*?\n/s,'').split(/\s+/).collect{|l| l.to_f}
+        txt = io.read
+        res = txt.sub(/WARNING: .*?\n/s,'').split(/\s+/).collect{|l| l.to_f}
 
         if list
           res
@@ -77,8 +77,9 @@ cat(paste(label, sep="\\n"));
   end
 
   def add(element, label = nil)
-    @features << extract_features.call(element)
-    @labels << label unless label.nil?
+    features = @extract_features ? extract_features.call(element) : element
+    @features << features
+    @labels << label 
   end
 
   def train
@@ -106,42 +107,42 @@ cat(paste(label, sep="\\n"));
   def eval_list(elements, extract = true)
     case 
     when Proc === eval_model
-      eval_model.call(@model_file, extract ? elements.collect{|element| extract_features.call(element)} : elements, true)
+      eval_model.call(@model_file, extract && @extract_features ? elements.collect{|element| @extract_features.call(element)} : elements, true)
     when String === eval_model
-      SVMModel.R_eval(@model_file, extract ? elements.collect{|element| extract_features.call(element)} : elements, true, eval_model)
+      SVMModel.R_eval(@model_file, extract && @extract_features ? elements.collect{|element| @extract_features.call(element)} : elements, true, eval_model)
     end
   end
 
-  def cross_validation(folds = 10)
-    saved_features = @features
-    saved_labels = @labels
-    seq = (0..features.length - 1).to_a
+  #def cross_validation(folds = 10)
+  #  saved_features = @features
+  #  saved_labels = @labels
+  #  seq = (0..features.length - 1).to_a
 
-    chunk_size = features.length / folds
+  #  chunk_size = features.length / folds
 
-    acc = []
-    folds.times do
-      seq = seq.shuffle
-      eval_chunk = seq[0..chunk_size]
-      train_chunk = seq[chunk_size.. -1]
+  #  acc = []
+  #  folds.times do
+  #    seq = seq.shuffle
+  #    eval_chunk = seq[0..chunk_size]
+  #    train_chunk = seq[chunk_size.. -1]
 
-      eval_features = @features.values_at *eval_chunk
-      eval_labels = @labels.values_at *eval_chunk
+  #    eval_features = @features.values_at *eval_chunk
+  #    eval_labels = @labels.values_at *eval_chunk
 
-      @features = @features.values_at *train_chunk
-      @labels = @labels.values_at *train_chunk
+  #    @features = @features.values_at *train_chunk
+  #    @labels = @labels.values_at *train_chunk
 
-      train
-      predictions = eval_list eval_features, false
+  #    train
+  #    predictions = eval_list eval_features, false
 
-      acc << predictions.zip(eval_labels).collect{|pred,lab| pred - lab < 0.5 ? 1 : 0}.inject(0){|acc,e| acc +=e} / chunk_size
+  #    acc << predictions.zip(eval_labels).collect{|pred,lab| pred - lab < 0.5 ? 1 : 0}.inject(0){|acc,e| acc +=e} / chunk_size
 
-      @features = saved_features
-      @labels = saved_labels
-    end
+  #    @features = saved_features
+  #    @labels = saved_labels
+  #  end
 
-    acc
-  end
+  #  acc
+  #end
 
   def cross_validation(folds = 10)
 
@@ -152,11 +153,13 @@ cat(paste(label, sep="\\n"));
 
     folds.times do |fix|
 
+      rest = (0..(folds-1)).to_a - [fix]
+
       test_set = feature_folds[fix]
-      train_set = feature_folds.values_at(*((0..9).to_a - [fix])).inject([]){|acc,e| acc += e; acc}
+      train_set = feature_folds.values_at(*rest).inject([]){|acc,e| acc += e; acc}
 
       test_labels = labels_folds[fix]
-      train_labels = labels_folds.values_at(*((0..9).to_a - [fix])).flatten
+      train_labels = labels_folds.values_at(*rest).flatten
 
       tp, fp, tn, fn, pr, re, f1 = [0, 0, 0, 0, nil, nil, nil]
 
@@ -164,6 +167,8 @@ cat(paste(label, sep="\\n"));
       @labels = train_labels
       self.train
       predictions = self.eval_list test_set, false
+
+      raise "Number of predictions (#{predictions.length}) and test labels (#{test_labels.length}) do not match" if predictions.length != test_labels.length
 
       test_labels.zip(predictions).each do |gs,pred|
         gs = gs.to_i
@@ -184,7 +189,7 @@ cat(paste(label, sep="\\n"));
 
       Misc.fingerprint([tp,tn,fp,fn,pr,re,f1])
 
-      Log.debug "CV Fold #{fix} P:#{"%.3f" % pr} R:#{"%.3f" % re} F1:#{"%.3f" % f1}"
+      Log.debug "CV Fold #{fix} P:#{"%.3f" % pr} R:#{"%.3f" % re} F1:#{"%.3f" % f1} - #{[tp.to_s, tn.to_s, fp.to_s, fn.to_s] * " "}"
 
       res[fix] = [tp,tn,fp,fn,pr,re,f1]
     end
