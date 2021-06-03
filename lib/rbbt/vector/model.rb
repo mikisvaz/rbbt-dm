@@ -60,13 +60,51 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
   end
 
+  def __load_method(file)
+    code = Open.read(file)
+    code.sub!(/.*Proc\.new/, "Proc.new")
+    instance_eval code, file
+  end
+
   def initialize(directory, extract_features = nil, train_model = nil, eval_model = nil)
     @directory = directory
     FileUtils.mkdir_p @directory unless File.exists? @directory
+
     @model_file = File.join(@directory, "model")
-    extract_features = @extract_features 
-    train_model = @train_model 
-    eval_model = @eval_model
+    @extract_features_file = File.join(@directory, "features")
+    @train_model_file = File.join(@directory, "train_model")
+    @eval_model_file = File.join(@directory, "eval_model")
+    @train_model_file_R = File.join(@directory, "train_model.R")
+    @eval_model_file_R = File.join(@directory, "eval_model.R")
+
+    if extract_features.nil?
+      if File.exists?(@extract_features_file)
+        @extract_features = __load_method @extract_features_file
+      end
+    else
+      @extract_features = extract_features 
+    end
+
+    if train_model.nil?
+      if File.exists?(@train_model_file)
+        @train_model = __load_method @train_model_file
+      elsif File.exists?(@train_model_file_R)
+        @train_model = Open.read(@train_model_file_R)
+      end
+    else
+      @train_model = train_model 
+    end
+
+    if eval_model.nil?
+      if File.exists?(@eval_model_file)
+        @eval_model = __load_method @eval_model_file
+      elsif File.exists?(@eval_model_file_R)
+        @eval_model = Open.read(@eval_model_file_R)
+      end
+    else
+      @eval_model = eval_model
+    end
+
     @features = []
     @labels = []
   end
@@ -82,6 +120,44 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     @labels << label 
   end
 
+  def add_list(elements, labels = nil)
+    if @extract_features.nil? || @extract_features.arity == 1
+      elements.zip(labels || [nil]).each do |elem,label|
+        add(elem, label)
+      end
+    else
+      features = @extract_features.call(nil, elements)
+      @features.concat  features
+      @labels.concat labels if labels
+    end
+  end
+
+  def save_models
+    require 'method_source'
+
+    case 
+    when Proc === train_model
+      begin
+        Open.write(@train_model_file, train_model.source)
+      rescue
+      end
+    when String === train_model
+      Open.write(@train_model_file_R, @train_model)
+    end
+
+    Open.write(@extract_features_file, @extract_features.source) if @extract_features
+
+    case 
+    when Proc === eval_model
+      begin
+        Open.write(@eval_model_file, eval_model.source)
+      rescue
+      end
+    when String === eval_model
+      Open.write(@eval_model_file_R, eval_model)
+    end
+  end
+
   def train
     case 
     when Proc === train_model
@@ -89,6 +165,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     when String === train_model
       VectorModel.R_train(@model_file,  @features, @labels, train_model)
     end
+    save_models
   end
 
   def run(code)
@@ -97,19 +174,30 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
   def eval(element)
     case 
-    when Proc === eval_model
-      eval_model.call(@model_file, extract_features.call(element), false)
-    when String === eval_model
-      VectorModel.R_eval(@model_file,  extract_features.call(element), false, eval_model)
+    when Proc === @eval_model
+      @eval_model.call(@model_file, @extract_features.call(element), false)
+    when String === @eval_model
+      VectorModel.R_eval(@model_file,  @extract_features.call(element), false, eval_model)
     end
   end
 
   def eval_list(elements, extract = true)
+
+    if extract && ! @extract_features.nil? 
+      features = if @extract_features.arity == 1
+                   elements.collect{|element| @extract_features.call(element) }
+                 else
+                   @extract_features.call(nil, elements)
+                 end
+    else
+      features = elements
+    end
+
     case 
     when Proc === eval_model
-      eval_model.call(@model_file, extract && @extract_features ? elements.collect{|element| @extract_features.call(element)} : elements, true)
+      eval_model.call(@model_file, features, true)
     when String === eval_model
-      SVMModel.R_eval(@model_file, extract && @extract_features ? elements.collect{|element| @extract_features.call(element)} : elements, true, eval_model)
+      VectorModel.R_eval(@model_file, features, true, eval_model)
     end
   end
 
@@ -148,52 +236,58 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
     res = TSV.setup({}, "Fold~TP,TN,FP,FN,P,R,F1#:type=:list")
 
-    feature_folds = Misc.divide(@features, folds)
-    labels_folds = Misc.divide(@labels, folds)
+    orig_features = @features
+    orig_labels = @labels
 
-    folds.times do |fix|
+    begin
+      feature_folds = Misc.divide(@features, folds)
+      labels_folds = Misc.divide(@labels, folds)
 
-      rest = (0..(folds-1)).to_a - [fix]
+      folds.times do |fix|
 
-      test_set = feature_folds[fix]
-      train_set = feature_folds.values_at(*rest).inject([]){|acc,e| acc += e; acc}
+        rest = (0..(folds-1)).to_a - [fix]
 
-      test_labels = labels_folds[fix]
-      train_labels = labels_folds.values_at(*rest).flatten
+        test_set = feature_folds[fix]
+        train_set = feature_folds.values_at(*rest).inject([]){|acc,e| acc += e; acc}
 
-      tp, fp, tn, fn, pr, re, f1 = [0, 0, 0, 0, nil, nil, nil]
+        test_labels = labels_folds[fix]
+        train_labels = labels_folds.values_at(*rest).flatten
 
-      @features = train_set
-      @labels = train_labels
-      self.train
-      predictions = self.eval_list test_set, false
+        tp, fp, tn, fn, pr, re, f1 = [0, 0, 0, 0, nil, nil, nil]
 
-      raise "Number of predictions (#{predictions.length}) and test labels (#{test_labels.length}) do not match" if predictions.length != test_labels.length
+        @features = train_set
+        @labels = train_labels
+        self.train
+        predictions = self.eval_list test_set, false
 
-      test_labels.zip(predictions).each do |gs,pred|
-        gs = gs.to_i
-        pred = pred > 0.5 ? 1 : 0
-        tp += 1 if gs == pred && gs == 1
-        tn += 1 if gs == pred && gs == 0
-        fp += 1 if gs == 0 && pred == 1
-        fn += 1 if gs == 1 && pred == 0
+        raise "Number of predictions (#{predictions.length}) and test labels (#{test_labels.length}) do not match" if predictions.length != test_labels.length
+
+        test_labels.zip(predictions).each do |gs,pred|
+          gs = gs.to_i
+          pred = pred > 0.5 ? 1 : 0
+          tp += 1 if gs == pred && gs == 1
+          tn += 1 if gs == pred && gs == 0
+          fp += 1 if gs == 0 && pred == 1
+          fn += 1 if gs == 1 && pred == 0
+        end
+
+        p = tp + fn
+        pp = tp + fp
+
+        pr = tp.to_f / pp
+        re = tp.to_f / p
+
+        f1 = (2.0 * tp) / (2.0 * tp + fp + fn) 
+
+        Log.debug "CV Fold #{fix} P:#{"%.3f" % pr} R:#{"%.3f" % re} F1:#{"%.3f" % f1} - #{[tp.to_s, tn.to_s, fp.to_s, fn.to_s] * " "}"
+
+        res[fix] = [tp,tn,fp,fn,pr,re,f1]
       end
-
-      p = tp + fn
-      pp = tp + fp
-
-      pr = tp.to_f / pp
-      re = tp.to_f / p
-
-      f1 = (2.0 * tp) / (2.0 * tp + fp + fn) 
-
-      Misc.fingerprint([tp,tn,fp,fn,pr,re,f1])
-
-      Log.debug "CV Fold #{fix} P:#{"%.3f" % pr} R:#{"%.3f" % re} F1:#{"%.3f" % f1} - #{[tp.to_s, tn.to_s, fp.to_s, fn.to_s] * " "}"
-
-      res[fix] = [tp,tn,fp,fn,pr,re,f1]
+    ensure
+      @features = orig_features
+      @labels = orig_labels
     end
-
+    self.train
     res
   end
 end

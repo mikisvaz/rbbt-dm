@@ -20,7 +20,7 @@ N4 N5
     end_node = "N5"
 
     path = Paths.dijkstra(network, start_node, [end_node])
-    assert_equal %w(N1 N2 N4), path.reverse
+    assert_equal %w(N1 N2 N4 N5), path.reverse
   end
 
   def test_weighted_dijsktra

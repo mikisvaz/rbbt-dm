@@ -10,8 +10,19 @@ class SpaCyModel < VectorModel
     end
   end
   
-  def initialize(dir, config, lang = 'en_core_web_sm')
-    @config = config
+  def initialize(dir, config, lang = 'en_core_web_md')
+    @config = case
+              when Path === config
+                config.read
+              when Misc.is_filename?(config)
+                Open.read(config)
+              when (Misc.is_filename?(config, false) && Rbbt.share.spaCy.cpu[config].exists?)
+                Rbbt.share.spaCy.cpu[config].read
+              when (Misc.is_filename?(config, false) && Rbbt.share.spaCy[config].exists?)
+                Rbbt.share.spaCy[config].read
+              else
+                config
+              end
     @lang = lang
 
     super(dir)
@@ -23,12 +34,19 @@ class SpaCyModel < VectorModel
       tmptrain = File.join(file, 'train.spacy')
       SpaCy.config(@config, tmpconfig)
       spacy do
-        nlp= spacy.load(lang)
+        nlp = SpaCy.nlp(lang)
         docs = []
         RbbtPython.iterate nlp.pipe(texts.zip(labels), as_tuples: true), :bar => "Training documents into spacy format" do |doc,label|
-          doc.cats["positive"] = %w(1 true).include? label.to_s.downcase
+          if %w(1 true pos).include?(label.to_s.downcase) 
+            doc.cats["positive"] = 1
+            doc.cats["negative"] = 0
+          else
+            doc.cats["positive"] = 0
+            doc.cats["negative"] = 1
+          end
           docs << doc
         end
+
         doc_bin = spacy.tokens.DocBin.new(docs: docs)
         doc_bin.to_disk(tmptrain)
       end
@@ -44,7 +62,8 @@ class SpaCyModel < VectorModel
         nlp = spacy.load("#{file}/model-best")
 
         texts.collect do |text|
-          nlp.(text).cats['positive'] > 0.5 ? 1 : 0
+          cats = nlp.(text).cats
+          cats['positive'] > cats['negative']  ? 1 : 0
         end
       end
     end

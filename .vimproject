@@ -30,6 +30,7 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
     model=model{
      svm.rb
      tensorflow.rb
+     spaCy.rb
     }
    }
    tensorflow.rb
@@ -46,6 +47,16 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
   }
  }
  share=share{
+  spaCy=spaCy{
+   cpu=cpu{
+    textcat_efficiency.conf
+    textcat_accuracy.conf
+   }
+   gpu=gpu{
+    textcat_efficiency.conf
+    textcat_accuracy.conf
+   }
+  }
   R=R{
    MA.R
    barcode.R

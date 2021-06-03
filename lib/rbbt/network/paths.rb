@@ -32,7 +32,7 @@ module Paths
     if end_node
       end_node = end_node.select{|n| parents.keys.include? n}.first unless String === end_node
       return nil if not parents.include? end_node
-      extract_path(parents, start_node, u)
+      extract_path(parents, start_node, end_node)
     else
       parents
     end
