@@ -10,7 +10,7 @@ begin
     gem.email = "miguel.vazquez@fdi.ucm.es"
     gem.homepage = "http://github.com/mikisvaz/rbbt-phgx"
     gem.authors = ["Miguel Vazquez"]
-    gem.files = Dir['lib/**/*.rb', 'share/**/*.rb', 'share/**/Rakefile', 'share/R/*.R', 'LICENSE']
+    gem.files = Dir['lib/**/*.rb', 'share/**/*.rb', 'share/**/Rakefile', 'share/R/*.R', 'share/spaCy/**/*.conf', 'LICENSE']
     gem.test_files = Dir['test/**/test_*.rb']
 
     gem.add_dependency('rbbt-util')
