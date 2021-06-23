@@ -46,26 +46,20 @@ Gem::Specification.new do |s|
     "share/R/heatmap.3.R"
   ]
   s.homepage = "http://github.com/mikisvaz/rbbt-phgx".freeze
-  s.rubygems_version = "2.7.6.2".freeze
+  s.rubygems_version = "3.1.4".freeze
   s.summary = "Data-mining and statistics".freeze
-  s.test_files = ["test/rbbt/statistics/test_hypergeometric.rb".freeze, "test/rbbt/statistics/test_fisher.rb".freeze, "test/rbbt/statistics/test_fdr.rb".freeze, "test/rbbt/statistics/test_random_walk.rb".freeze, "test/rbbt/test_ml_task.rb".freeze, "test/rbbt/vector/test_model.rb".freeze, "test/rbbt/vector/model/test_tensorflow.rb".freeze, "test/rbbt/vector/model/test_spaCy.rb".freeze, "test/rbbt/vector/model/test_svm.rb".freeze, "test/rbbt/network/test_paths.rb".freeze, "test/rbbt/matrix/test_barcode.rb".freeze, "test/rbbt/test_stan.rb".freeze, "test/test_helper.rb".freeze]
+  s.test_files = ["test/rbbt/network/test_paths.rb".freeze, "test/rbbt/matrix/test_barcode.rb".freeze, "test/rbbt/statistics/test_random_walk.rb".freeze, "test/rbbt/statistics/test_fisher.rb".freeze, "test/rbbt/statistics/test_fdr.rb".freeze, "test/rbbt/statistics/test_hypergeometric.rb".freeze, "test/rbbt/test_ml_task.rb".freeze, "test/rbbt/vector/test_model.rb".freeze, "test/rbbt/vector/model/test_spaCy.rb".freeze, "test/rbbt/vector/model/test_tensorflow.rb".freeze, "test/rbbt/vector/model/test_svm.rb".freeze, "test/rbbt/test_stan.rb".freeze, "test/test_helper.rb".freeze]
 
   if s.respond_to? :specification_version then
     s.specification_version = 4
+  end
 
-    if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<rbbt-util>.freeze, [">= 0"])
-      s.add_runtime_dependency(%q<RubyInline>.freeze, [">= 0"])
-      s.add_runtime_dependency(%q<priority_queue_cxx17>.freeze, [">= 0"])
-      s.add_runtime_dependency(%q<distribution>.freeze, [">= 0"])
-      s.add_runtime_dependency(%q<png>.freeze, [">= 0"])
-    else
-      s.add_dependency(%q<rbbt-util>.freeze, [">= 0"])
-      s.add_dependency(%q<RubyInline>.freeze, [">= 0"])
-      s.add_dependency(%q<priority_queue_cxx17>.freeze, [">= 0"])
-      s.add_dependency(%q<distribution>.freeze, [">= 0"])
-      s.add_dependency(%q<png>.freeze, [">= 0"])
-    end
+  if s.respond_to? :add_runtime_dependency then
+    s.add_runtime_dependency(%q<rbbt-util>.freeze, [">= 0"])
+    s.add_runtime_dependency(%q<RubyInline>.freeze, [">= 0"])
+    s.add_runtime_dependency(%q<priority_queue_cxx17>.freeze, [">= 0"])
+    s.add_runtime_dependency(%q<distribution>.freeze, [">= 0"])
+    s.add_runtime_dependency(%q<png>.freeze, [">= 0"])
   else
     s.add_dependency(%q<rbbt-util>.freeze, [">= 0"])
     s.add_dependency(%q<RubyInline>.freeze, [">= 0"])
