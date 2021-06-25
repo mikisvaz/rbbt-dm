@@ -62,9 +62,12 @@ class SpaCyModel < VectorModel
       spacy do
         nlp = spacy.load("#{file}/model-best")
 
-        texts.collect do |text|
-          cats = nlp.(text).cats
-          cats['positive'] > cats['negative']  ? 1 : 0
+        Log::ProgressBar.with_bar texts.length, :desc => "Evaluating documents" do |bar|
+          texts.collect do |text|
+            cats = nlp.(text).cats
+            bar.tick
+            cats['positive'] > cats['negative']  ? 1 : 0
+          end
         end
       end
     end
