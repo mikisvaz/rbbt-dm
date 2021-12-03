@@ -2,54 +2,76 @@ require 'rbbt/util/R'
 
 class VectorModel
   attr_accessor :directory, :model_file, :extract_features, :train_model, :eval_model
-  attr_accessor :features, :labels
+  attr_accessor :features, :names, :labels
 
-  def self.R_run(model_file, features, labels, code)
+  def self.R_run(model_file, features, labels, code, names = nil)
     TmpFile.with_file do |feature_file|
       Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
-      Open.write(feature_file + '.class', labels * "\n")
+      Open.write(feature_file + '.label', labels * "\n")
+      Open.write(feature_file + '.names', names * "\n") if names
+
+
+      what = case labels.first
+             when Numeric, Integer, Float
+               'numeric()'
+             else
+               'character()'
+             end
 
       R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
-labels = scan("#{ feature_file }.class");
-features = cbind(features, class = labels);
+#{"names(features) = make.names(readLines('#{feature_file + '.names'}'))" if names }
+labels = scan("#{ feature_file }.label", what=#{what});
+features = cbind(features, label = labels);
 #{code}
       EOF
     end
   end
 
-  def self.R_train(model_file, features, labels, code)
+  def self.R_train(model_file, features, labels, code, names = nil)
     TmpFile.with_file do |feature_file|
       Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
-      Open.write(feature_file + '.class', labels * "\n")
+      Open.write(feature_file + '.label', labels * "\n")
+      Open.write(feature_file + '.names', names * "\n") if names
+
+      what = case labels.first
+             when Numeric, Integer, Float
+               'numeric()'
+             else
+               'character()'
+             end
 
       R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
-labels = scan("#{ feature_file }.class");
-features = cbind(features, class = labels);
+labels = scan("#{ feature_file }.label", what=#{what});
+#{"names(features) = make.names(readLines('#{feature_file + '.names'}'))" if names }
+features = cbind(features, label = labels);
 #{code}
 save(model, file='#{model_file}')
       EOF
     end
   end
 
-  def self.R_eval(model_file, features, list, code)
+  def self.R_eval(model_file, features, list, code, names = nil)
     TmpFile.with_file do |feature_file|
+      if list
+        Open.write(feature_file, features.collect{|feat| feat * "\t"} * "\n" + "\n")
+      else
+        Open.write(feature_file, features * "\t" + "\n")
+      end
+      Open.write(feature_file + '.names', names * "\n") if names
+
       TmpFile.with_file do |results|
-        if list
-          Open.write(feature_file, features.collect{|feat| feat * "\t"} * "\n" + "\n")
-        else
-          Open.write(feature_file, features * "\t" + "\n")
-        end
 
         io = R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
+#{"names(features) = make.names(readLines('#{feature_file + '.names'}'))" if names }
 load(file="#{model_file}");
 #{code}
 cat(paste(label, sep="\\n", collapse="\\n"));
         EOF
         txt = io.read
-        res = txt.sub(/WARNING: .*?\n/s,'').split(/\s+/).collect{|l| l.to_f}
+        res = txt.sub(/WARNING: .*?\n/s,'').split(/\s+/)
 
         if list
           res
@@ -161,23 +183,23 @@ cat(paste(label, sep="\\n", collapse="\\n"));
   def train
     case 
     when Proc === train_model
-      train_model.call(@model_file, @features, @labels)
+      train_model.call(@model_file, @features, @labels, @names)
     when String === train_model
-      VectorModel.R_train(@model_file,  @features, @labels, train_model)
+      VectorModel.R_train(@model_file,  @features, @labels, train_model, @names)
     end
     save_models
   end
 
   def run(code)
-    VectorModel.R_run(@model_file,  @features, @labels, code)
+    VectorModel.R_run(@model_file,  @features, @labels, code, @names)
   end
 
   def eval(element)
     case 
     when Proc === @eval_model
-      @eval_model.call(@model_file, @extract_features.call(element), false)
+      @eval_model.call(@model_file, @extract_features.call(element), false, nil, @names)
     when String === @eval_model
-      VectorModel.R_eval(@model_file,  @extract_features.call(element), false, eval_model)
+      VectorModel.R_eval(@model_file,  @extract_features.call(element), false, eval_model, @names)
     end
   end
 
@@ -195,9 +217,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
     case 
     when Proc === eval_model
-      eval_model.call(@model_file, features, true)
+      eval_model.call(@model_file, features, true, nil, @names)
     when String === eval_model
-      VectorModel.R_eval(@model_file, features, true, eval_model)
+      VectorModel.R_eval(@model_file, features, true, eval_model, @names)
     end
   end
 
@@ -263,12 +285,18 @@ cat(paste(label, sep="\\n", collapse="\\n"));
         raise "Number of predictions (#{predictions.length}) and test labels (#{test_labels.length}) do not match" if predictions.length != test_labels.length
 
         test_labels.zip(predictions).each do |gs,pred|
-          gs = gs.to_i
-          pred = pred > 0.5 ? 1 : 0
-          tp += 1 if gs == pred && gs == 1
-          tn += 1 if gs == pred && gs == 0
-          fp += 1 if gs == 0 && pred == 1
-          fn += 1 if gs == 1 && pred == 0
+          gs = gs.to_s
+          pred = pred.to_s
+
+          gs = "1" if gs == "true"
+          gs = "0" if gs == "false"
+          pred = "1" if pred == "true"
+          pred = "0" if pred == "false"
+
+          tp += 1 if gs == pred && gs == "1"
+          tn += 1 if gs == pred && gs == "0"
+          fp += 1 if gs == "0" && pred == "1"
+          fn += 1 if gs == "1" && pred == "0"
         end
 
         p = tp + fn

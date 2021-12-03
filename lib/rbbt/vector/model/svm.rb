@@ -8,12 +8,12 @@ class SVMModel < VectorModel
     }
 
     @train_model =<<-EOF
-library(e1071);
-model = svm(as.factor(class) ~ ., data = features);
+rbbt.require('e1071');
+model = svm(as.factor(label) ~ ., data = features);
     EOF
  
     @eval_model =<<-EOF
-library(e1071);
+rbbt.require('e1071');
 label = predict(model, features);
     EOF
   end

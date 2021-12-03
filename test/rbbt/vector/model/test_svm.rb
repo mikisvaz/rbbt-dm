@@ -33,10 +33,10 @@ class TestSVMModel < Test::Unit::TestCase
 
       model.train
 
-      assert model.eval("1;1;1") > 0.5
-      assert model.eval("0;0;0") < 0.5
+      assert model.eval("1;1;1") == "1"
+      assert model.eval("0;0;0") == "0"
 
-      assert_equal [true, false], model.eval_list(%w(1;1;1 0;0;0)).collect{|v| v > 0.5}
+      assert_equal [true, false], model.eval_list(%w(1;1;1 0;0;0)).collect{|v| v == "1"}
     end
   end
 

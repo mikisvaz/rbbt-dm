@@ -4,12 +4,13 @@ require 'rbbt/vector/model/tensorflow'
 class TestTensorflowModel < Test::Unit::TestCase
 
   def test_keras
+    Log.severity = 0
     TmpFile.with_file() do |dir|
       FileUtils.mkdir_p dir
 
       model = TensorFlowModel.new(
         dir, 
-        optimizer:'adam',
+        optimizer: 'adam',
         loss: 'sparse_categorical_crossentropy',
         metrics: ['accuracy']
       )
@@ -42,6 +43,7 @@ class TestTensorflowModel < Test::Unit::TestCase
 
         predictions = model.eval_list x_test.tolist()
         sum = 0
+
         predictions.zip(y_test.tolist()).each do |pred,label|
           sum += 1 if label.to_i == pred
         end
@@ -49,8 +51,6 @@ class TestTensorflowModel < Test::Unit::TestCase
       end
 
       assert sum.to_f / predictions.length > 0.7
-
-
     end
   end
 end

@@ -27,7 +27,7 @@ module RbbtTensorflow
       mod.compile(optimizer='adam',
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
-      mod.fit(x_train, y_train, epochs:1)
+      mod.fit(x_train, y_train, epochs:3)
       mod
     end
 

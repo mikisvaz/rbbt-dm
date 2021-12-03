@@ -32,7 +32,7 @@ class TensorFlowModel < VectorModel
       end
       @graph ||= keras_graph
       @graph.compile(**@compile_options)
-      @graph.fit(features, labels, :epochs => @epochs, :verbose => false)
+      @graph.fit(features, labels, :epochs => @epochs, :verbose => true)
       @graph.save(file)
     end
  
