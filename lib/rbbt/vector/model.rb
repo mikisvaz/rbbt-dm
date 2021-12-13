@@ -2,13 +2,13 @@ require 'rbbt/util/R'
 
 class VectorModel
   attr_accessor :directory, :model_file, :extract_features, :train_model, :eval_model
-  attr_accessor :features, :names, :labels
+  attr_accessor :features, :names, :labels, :factor_levels
 
-  def self.R_run(model_file, features, labels, code, names = nil)
+  def self.R_run(model_file, features, labels, code, names = nil, factor_levels = nil)
     TmpFile.with_file do |feature_file|
       Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
-      Open.write(feature_file + '.label', labels * "\n")
-      Open.write(feature_file + '.names', names * "\n") if names
+      Open.write(feature_file + '.label', labels * "\n" + "\n")
+      Open.write(feature_file + '.names', names * "\n" + "\n") if names
 
 
       what = case labels.first
@@ -19,8 +19,11 @@ class VectorModel
              end
 
       R.run <<-EOF
-features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
+features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=TRUE);
 #{"names(features) = make.names(readLines('#{feature_file + '.names'}'))" if names }
+#{ factor_levels.collect do |name,levels|
+    "features[['#{name}']] = factor(features[['#{name}']], levels=#{R.ruby2R levels})"
+  end * "\n" if factor_levels }
 labels = scan("#{ feature_file }.label", what=#{what});
 features = cbind(features, label = labels);
 #{code}
@@ -28,11 +31,11 @@ features = cbind(features, label = labels);
     end
   end
 
-  def self.R_train(model_file, features, labels, code, names = nil)
+  def self.R_train(model_file, features, labels, code, names = nil, factor_levels = nil)
     TmpFile.with_file do |feature_file|
       Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
-      Open.write(feature_file + '.label', labels * "\n")
-      Open.write(feature_file + '.names', names * "\n") if names
+      Open.write(feature_file + '.label', labels * "\n" + "\n")
+      Open.write(feature_file + '.names', names * "\n" + "\n") if names
 
       what = case labels.first
              when Numeric, Integer, Float
@@ -42,30 +45,36 @@ features = cbind(features, label = labels);
              end
 
       R.run <<-EOF
-features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
+features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=TRUE);
 labels = scan("#{ feature_file }.label", what=#{what});
 #{"names(features) = make.names(readLines('#{feature_file + '.names'}'))" if names }
 features = cbind(features, label = labels);
+#{ factor_levels.collect do |name,levels|
+    "features[['#{name}']] = factor(features[['#{name}']], levels=#{R.ruby2R levels})"
+  end * "\n" if factor_levels }
 #{code}
 save(model, file='#{model_file}')
       EOF
     end
   end
 
-  def self.R_eval(model_file, features, list, code, names = nil)
+  def self.R_eval(model_file, features, list, code, names = nil, factor_levels = nil)
     TmpFile.with_file do |feature_file|
       if list
         Open.write(feature_file, features.collect{|feat| feat * "\t"} * "\n" + "\n")
       else
         Open.write(feature_file, features * "\t" + "\n")
       end
-      Open.write(feature_file + '.names', names * "\n") if names
+      Open.write(feature_file + '.names', names * "\n" + "\n") if names
 
       TmpFile.with_file do |results|
 
         io = R.run <<-EOF
-features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
+features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=TRUE);
 #{"names(features) = make.names(readLines('#{feature_file + '.names'}'))" if names }
+#{ factor_levels.collect do |name,levels|
+    "features[['#{name}']] = factor(features[['#{name}']], levels=#{R.ruby2R levels})"
+  end * "\n" if factor_levels }
 load(file="#{model_file}");
 #{code}
 cat(paste(label, sep="\\n", collapse="\\n"));
@@ -88,7 +97,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     instance_eval code, file
   end
 
-  def initialize(directory, extract_features = nil, train_model = nil, eval_model = nil)
+  def initialize(directory, extract_features = nil, train_model = nil, eval_model = nil, names = nil, factor_levels = nil)
     @directory = directory
     FileUtils.mkdir_p @directory unless File.exists? @directory
 
@@ -98,6 +107,8 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     @eval_model_file = File.join(@directory, "eval_model")
     @train_model_file_R = File.join(@directory, "train_model.R")
     @eval_model_file_R = File.join(@directory, "eval_model.R")
+    @names_file = File.join(@directory, "feature_names")
+    @levels_file = File.join(@directory, "levels")
 
     if extract_features.nil?
       if File.exists?(@extract_features_file)
@@ -125,6 +136,22 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       end
     else
       @eval_model = eval_model
+    end
+
+    if names.nil?
+      if File.exists?(@names_file)
+        @names = Open.read(@names_file).split("\n")
+      end
+    else
+      @extract_features = names 
+    end
+
+    if factor_levels.nil?
+      if File.exists?(@levels_file)
+        @factor_levels = YAML.load(Open.read(@levels_file))
+      end
+    else
+      @factor_levels = factor_levels 
     end
 
     @features = []
@@ -178,28 +205,31 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     when String === eval_model
       Open.write(@eval_model_file_R, eval_model)
     end
+
+    Open.write(@levels_file, @factor_levels.to_yaml) if @factor_levels
+    Open.write(@names_file, @names * "\n" + "\n") if @names
   end
 
   def train
     case 
     when Proc === train_model
-      train_model.call(@model_file, @features, @labels, @names)
+      train_model.call(@model_file, @features, @labels, @names, @factor_levels)
     when String === train_model
-      VectorModel.R_train(@model_file,  @features, @labels, train_model, @names)
+      VectorModel.R_train(@model_file,  @features, @labels, train_model, @names, @factor_levels)
     end
     save_models
   end
 
   def run(code)
-    VectorModel.R_run(@model_file,  @features, @labels, code, @names)
+    VectorModel.R_run(@model_file,  @features, @labels, code, @names, @factor_levels)
   end
 
   def eval(element)
     case 
     when Proc === @eval_model
-      @eval_model.call(@model_file, @extract_features.call(element), false, nil, @names)
+      @eval_model.call(@model_file, @extract_features.call(element), false, nil, @names, @factor_levels)
     when String === @eval_model
-      VectorModel.R_eval(@model_file,  @extract_features.call(element), false, eval_model, @names)
+      VectorModel.R_eval(@model_file,  @extract_features.call(element), false, eval_model, @names, @factor_levels)
     end
   end
 
@@ -217,9 +247,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
     case 
     when Proc === eval_model
-      eval_model.call(@model_file, features, true, nil, @names)
+      eval_model.call(@model_file, features, true, nil, @names, @factor_levels)
     when String === eval_model
-      VectorModel.R_eval(@model_file, features, true, eval_model, @names)
+      VectorModel.R_eval(@model_file, features, true, eval_model, @names, @factor_levels)
     end
   end
 
@@ -253,13 +283,60 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
   #  acc
   #end
+  #
+  
+  def self.f1_metrics(test, predicted, good_label = nil)
+    tp, tn, fp, fn, pr, re, f1 = [0, 0, 0, 0, nil, nil, nil]
 
-  def cross_validation(folds = 10)
+    labels = (test + predicted).uniq
 
-    res = TSV.setup({}, "Fold~TP,TN,FP,FN,P,R,F1#:type=:list")
+    if labels.length == 2 || good_label
+      good_label = labels.uniq.select{|l| l.to_s == "true"}.first if good_label.nil?
+      good_label = labels.uniq.select{|l| l.to_s == "1"}.first if good_label.nil?
+      good_label = labels.uniq.sort.first if good_label.nil?
+
+      test.zip(predicted).each do |gs,pred|
+        gs = gs.to_s
+        pred = pred.to_s
+
+        tp += 1 if gs == pred && gs == good_label
+        tn += 1 if gs == pred && gs != good_label 
+        fp += 1 if gs != good_label && pred == good_label
+        fn += 1 if gs == good_label && pred != good_label
+      end
+
+      p = tp + fn
+      pp = tp + fp
+
+      pr = tp.to_f / pp
+      re = tp.to_f / p
+
+      f1 = (2.0 * tp) / (2.0 * tp + fp + fn) 
+
+      [tp, tn, fp, fn, pr, re, f1]
+    else 
+      num = labels.length
+      acc = []
+      labels.each do |good_label|
+        values = VectorModel.f1_metrics(test, predicted, good_label)
+        acc << values
+      end
+      Misc.zip_fields(acc).collect{|s| Misc.mean(s)}
+    end
+  end
+
+  def cross_validation(folds = 10, good_label = nil)
 
     orig_features = @features
     orig_labels = @labels
+
+    multiclass = @labels.uniq.length > 2
+
+    if multiclass
+      res = TSV.setup({}, "Fold~P,R,F1#:type=:list")
+    else
+      res = TSV.setup({}, "Fold~TP,TN,FP,FN,P,R,F1#:type=:list")
+    end
 
     begin
       feature_folds = Misc.divide(@features, folds)
@@ -275,8 +352,6 @@ cat(paste(label, sep="\\n", collapse="\\n"));
         test_labels = labels_folds[fix]
         train_labels = labels_folds.values_at(*rest).flatten
 
-        tp, fp, tn, fn, pr, re, f1 = [0, 0, 0, 0, nil, nil, nil]
-
         @features = train_set
         @labels = train_labels
         self.train
@@ -284,32 +359,18 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
         raise "Number of predictions (#{predictions.length}) and test labels (#{test_labels.length}) do not match" if predictions.length != test_labels.length
 
-        test_labels.zip(predictions).each do |gs,pred|
-          gs = gs.to_s
-          pred = pred.to_s
+        different_labels = test_labels.uniq
 
-          gs = "1" if gs == "true"
-          gs = "0" if gs == "false"
-          pred = "1" if pred == "true"
-          pred = "0" if pred == "false"
+        tp, tn, fp, fn, pr, re, f1 = VectorModel.f1_metrics(test_labels, predictions, good_label)
 
-          tp += 1 if gs == pred && gs == "1"
-          tn += 1 if gs == pred && gs == "0"
-          fp += 1 if gs == "0" && pred == "1"
-          fn += 1 if gs == "1" && pred == "0"
+        if multiclass 
+          Log.low "Multi-class CV Fold #{fix} - Average P:#{"%.3f" % pr} R:#{"%.3f" % re} F1:#{"%.3f" % f1}"
+          res[fix] = [pr,re,f1]
+        else
+          Log.low "CV Fold #{fix} P:#{"%.3f" % pr} R:#{"%.3f" % re} F1:#{"%.3f" % f1} - #{[tp.to_s, tn.to_s, fp.to_s, fn.to_s] * " "}"
+          res[fix] = [tp,tn,fp,fn,pr,re,f1]
         end
 
-        p = tp + fn
-        pp = tp + fp
-
-        pr = tp.to_f / pp
-        re = tp.to_f / p
-
-        f1 = (2.0 * tp) / (2.0 * tp + fp + fn) 
-
-        Log.debug "CV Fold #{fix} P:#{"%.3f" % pr} R:#{"%.3f" % re} F1:#{"%.3f" % f1} - #{[tp.to_s, tn.to_s, fp.to_s, fn.to_s] * " "}"
-
-        res[fix] = [tp,tn,fp,fn,pr,re,f1]
       end
     ensure
       @features = orig_features

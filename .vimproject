@@ -29,6 +29,7 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
     model.rb
     model=model{
      svm.rb
+     random_forest.rb
      tensorflow.rb
      spaCy.rb
     }

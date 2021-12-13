@@ -336,5 +336,178 @@ label = predict(model, features);
     end
   end
 
+  def test_model_cv
+    text =<<-EOF
+0 0;1;0;0
+0 1;0;0;0
+0 0;1;0;0
+0 1;0;0;0
+1 0;1;1;0
+1 1;0;1;0
+1 1;1;1;0
+1 0;1;1;0
+1 1;1;1;0
+    EOF
+
+    TmpFile.with_file() do |dir|
+      FileUtils.mkdir_p dir
+      model = VectorModel.new(dir)
+
+      model.names = %w(Var1 Var2 Var3 Var4)
+
+      model.extract_features = Proc.new{|element,list|
+        if element
+          element.split(";")
+        elsif list
+          list.collect{|e| e.split(";") }
+        end
+      }
+
+      model.train_model =<<-EOF
+rbbt.require('randomForest')
+model = randomForest(as.factor(label) ~ ., data = features) 
+      EOF
+
+      model.eval_model = <<-EOF
+rbbt.require('randomForest')
+label = predict(model, features);
+      EOF
+
+      pairs = text.split(/\n/).collect do |line|
+        label, features = line.split(" ")
+        model.add features, label
+      end
+
+      model.train
+      
+      assert_equal "0", model.eval("1;1;0;0")
+      assert_equal "1", model.eval("1;1;1;0")
+
+      Log.with_severity 1 do
+        model.cross_validation(2)
+      end
+
+    end
+  end
+
+  def test_model_mclass
+    text =<<-EOF
+0 0;1;0;0
+0 1;0;0;0
+0 0;1;0;0
+0 1;0;0;0
+1 0;1;1;0
+1 1;0;1;0
+1 1;1;1;0
+1 0;1;1;0
+1 1;1;1;0
+2 0;1;0;1
+2 1;0;0;1
+2 1;1;0;1
+2 0;1;0;1
+2 1;1;0;1
+    EOF
+
+    TmpFile.with_file() do |dir|
+      FileUtils.mkdir_p dir
+      model = VectorModel.new(dir)
+
+      model.names = %w(Var1 Var2 Var3 Var4)
+
+      model.extract_features = Proc.new{|element,list|
+        if element
+          element.split(";")
+        elsif list
+          list.collect{|e| e.split(";") }
+        end
+      }
+
+      model.train_model =<<-EOF
+rbbt.require('randomForest')
+model = randomForest(as.factor(label) ~ ., data = features) 
+      EOF
+
+      model.eval_model = <<-EOF
+rbbt.require('randomForest')
+label = predict(model, features);
+      EOF
+
+      pairs = text.split(/\n/).collect do |line|
+        label, features = line.split(" ")
+        model.add features, label
+      end
+
+      model.train
+      
+      assert_equal "0", model.eval("1;1;0;0")
+      assert_equal "1", model.eval("1;1;1;0")
+      assert_equal "2", model.eval("1;1;0;1")
+
+      Log.with_severity 1 do
+        model.cross_validation(2)
+      end
+
+    end
+  end
+
+  def test_model_factor_levels
+    text =<<-EOF
+0 0;1;0;f1
+0 1;0;0;f1
+0 0;1;0;f1
+0 1;0;0;f1
+1 0;1;1;f2
+1 1;0;1;f2
+1 1;1;1;f2
+1 0;1;1;f2
+1 1;1;1;f2
+    EOF
+
+    TmpFile.with_file() do |dir|
+      FileUtils.mkdir_p dir
+      model = VectorModel.new(dir)
+
+      model.names = %w(Var1 Var2 Var3 Factor)
+
+      model.extract_features = Proc.new{|element,list|
+        if element
+          element.split(";")
+        elsif list
+          list.collect{|e| e.split(";") }
+        end
+      }
+
+      model.train_model =<<-EOF
+rbbt.require('randomForest')
+model = randomForest(as.factor(label) ~ ., data = features) 
+      EOF
+
+      model.eval_model = <<-EOF
+rbbt.require('randomForest')
+label = predict(model, features);
+      EOF
+
+      pairs = text.split(/\n/).collect do |line|
+        label, features = line.split(" ")
+        model.add features, label
+      end
+
+      Log.with_severity 0 do
+        model.train
+        model.cross_validation(2)
+
+        assert_raise do
+          assert_equal "0", model.eval("1;1;0;f1")
+        end
+
+        model.factor_levels = {"Factor" => %w(f1 f2)}
+        model.train
+        model = VectorModel.new(dir)
+        assert_equal "1", model.eval("1;1;1;f2")
+      end
+
+    end
+  end
+
 
 end
