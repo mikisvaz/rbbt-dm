@@ -294,15 +294,16 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       good_label = labels.uniq.select{|l| l.to_s == "true"}.first if good_label.nil?
       good_label = labels.uniq.select{|l| l.to_s == "1"}.first if good_label.nil?
       good_label = labels.uniq.sort.first if good_label.nil?
+      good_label = good_label.to_s
 
       test.zip(predicted).each do |gs,pred|
         gs = gs.to_s
         pred = pred.to_s
 
-        tp += 1 if gs == good_label && gs == good_label
-        tn += 1 if gs != good_label && gs != good_label 
-        fp += 1 if gs != good_label && pred == good_label
-        fn += 1 if gs == good_label && pred != good_label
+        tp += 1 if pred == good_label && gs == good_label
+        fp += 1 if pred == good_label && gs != good_label
+        tn += 1 if pred != good_label && gs != good_label 
+        fn += 1 if pred != good_label && gs == good_label
       end
 
       p = tp + fn
