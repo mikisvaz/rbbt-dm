@@ -299,8 +299,8 @@ cat(paste(label, sep="\\n", collapse="\\n"));
         gs = gs.to_s
         pred = pred.to_s
 
-        tp += 1 if gs == pred && gs == good_label
-        tn += 1 if gs == pred && gs != good_label 
+        tp += 1 if gs == good_label && gs == good_label
+        tn += 1 if gs != good_label && gs != good_label 
         fp += 1 if gs != good_label && pred == good_label
         fn += 1 if gs == good_label && pred != good_label
       end
