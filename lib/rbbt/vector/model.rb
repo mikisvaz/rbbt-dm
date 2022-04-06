@@ -320,6 +320,8 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       acc = []
       labels.each do |good_label|
         values = VectorModel.f1_metrics(test, predicted, good_label)
+        tp, tn, fp, fn, pr, re, f1 = values
+        Log.debug "Partial CV #{good_label} - P:#{"%.3f" % pr} R:#{"%.3f" % re} F1:#{"%.3f" % f1} - #{[tp.to_s, tn.to_s, fp.to_s, fn.to_s] * " "}"
         acc << values
       end
       Misc.zip_fields(acc).collect{|s| Misc.mean(s)}
@@ -361,6 +363,8 @@ cat(paste(label, sep="\\n", collapse="\\n"));
         raise "Number of predictions (#{predictions.length}) and test labels (#{test_labels.length}) do not match" if predictions.length != test_labels.length
 
         different_labels = test_labels.uniq
+
+        Log.debug do "Accuracy Fold #{fix}: #{(100 * test_labels.zip(predictions).select{|t,p| t == p }.length.to_f / test_labels.length).round(2)}%"  end
 
         tp, tn, fp, fn, pr, re, f1 = VectorModel.f1_metrics(test_labels, predictions, good_label)
 
