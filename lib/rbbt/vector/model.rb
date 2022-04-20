@@ -342,12 +342,21 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     begin
-      feature_folds = Misc.divide(@features, folds)
-      labels_folds = Misc.divide(@labels, folds)
+      if folds == 1
+        feature_folds = [@features]
+        labels_folds = [@labels]
+      else
+        feature_folds = Misc.divide(@features, folds)
+        labels_folds = Misc.divide(@labels, folds)
+      end
 
       folds.times do |fix|
 
-        rest = (0..(folds-1)).to_a - [fix]
+        if folds == 1
+          rest = [fix]
+        else
+          rest = (0..(folds-1)).to_a - [fix]
+        end
 
         test_set = feature_folds[fix]
         train_set = feature_folds.values_at(*rest).inject([]){|acc,e| acc += e; acc}
@@ -357,6 +366,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
         @features = train_set
         @labels = train_labels
+
         self.train
         predictions = self.eval_list test_set, false
 
@@ -381,7 +391,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       @features = orig_features
       @labels = orig_labels
     end
-    self.train
+    self.train unless folds == 1
     res
   end
 end
