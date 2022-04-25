@@ -51,7 +51,7 @@ class SpaCyModel < VectorModel
         doc_bin.to_disk(tmptrain)
       end
 
-      gpu = Rbbt::Config.get('gpu_id', :spacy, :spacy_train)
+      gpu = Rbbt::Config.get('gpu_id', :spacy, :spacy_train, :default => 0)
       CMD.cmd_log(:spacy, "train #{tmpconfig} --output #{file} --paths.train #{tmptrain} --paths.dev #{tmptrain}",  "--gpu-id" => gpu)
     end
  
