@@ -23,18 +23,23 @@ class TestSpaCyModel < Test::Unit::TestCase
       good = tsv.select("Recommended IND" => '1')
       bad = tsv.select("Recommended IND" => '0')
 
-      gsize = 2000
-      bsize = 500
+      gsize = 200
+      bsize = 50
       good.keys[0..gsize-1].each do |text|
         next if text.nil? || text.empty?
-        model.add text, '1'
+        model.add text, 'good'
       end
 
       bad.keys[0..bsize-1].each do |text|
-        model.add text, '0'
+        model.add text, 'bad'
       end
 
-      model.cross_validation
+      model.cross_validation 1
+
+      model = VectorModel.new dir
+
+      assert Misc.counts(model.eval_list(good.keys[0..50]))['good'] > 40
+      assert Misc.counts(model.eval_list(bad.keys[0..50]))['bad'] > 40
     end
 
     def test_svm_spacy

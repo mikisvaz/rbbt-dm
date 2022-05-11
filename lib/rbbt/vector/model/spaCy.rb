@@ -4,13 +4,13 @@ require 'rbbt/nlp/spaCy'
 class SpaCyModel < VectorModel
   attr_accessor :config
 
-  def spacy(&block)
+  def self.spacy(&block)
     RbbtPython.run "spacy" do 
       RbbtPython.module_eval(&block)
     end
   end
   
-  def initialize(dir, config, lang = 'en_core_web_md')
+  def initialize(dir, config, categories = %w(positive negative), lang = 'en_core_web_md')
     @config = case
               when Path === config
                 config.read
@@ -33,17 +33,18 @@ class SpaCyModel < VectorModel
       tmpconfig = File.join(file, 'config')
       tmptrain = File.join(file, 'train.spacy')
       SpaCy.config(@config, tmpconfig)
-      spacy do
+      SpaCyModel.spacy do
         nlp = SpaCy.nlp(lang)
         docs = []
         RbbtPython.iterate nlp.pipe(texts.zip(labels), as_tuples: true), :bar => "Training documents into spacy format" do |doc,label|
-          if %w(1 true pos).include?(label.to_s.downcase) 
-            doc.cats["positive"] = 1
-            doc.cats["negative"] = 0
-          else
-            doc.cats["positive"] = 0
-            doc.cats["negative"] = 1
-          end
+          doc.cats[label] = 1
+          #if %w(1 true pos).include?(label.to_s.downcase) 
+          #  doc.cats["positive"] = 1
+          #  doc.cats["negative"] = 0
+          #else
+          #  doc.cats["positive"] = 0
+          #  doc.cats["negative"] = 1
+          #end
           docs << doc
         end
 
@@ -59,14 +60,15 @@ class SpaCyModel < VectorModel
       texts = features
 
       docs = []
-      spacy do
+      SpaCyModel.spacy do
         nlp = spacy.load("#{file}/model-best")
 
         Log::ProgressBar.with_bar texts.length, :desc => "Evaluating documents" do |bar|
           texts.collect do |text|
             cats = nlp.(text).cats
             bar.tick
-            cats['positive'] > cats['negative']  ? 1 : 0
+            cats.sort_by{|l,v| v.to_f }.last.first
+            #cats['positive'] > cats['negative']  ? 1 : 0
           end
         end
       end
