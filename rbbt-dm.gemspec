@@ -55,9 +55,9 @@ Gem::Specification.new do |s|
     "share/spaCy/gpu/textcat_multilabel_efficiency.conf"
   ]
   s.homepage = "http://github.com/mikisvaz/rbbt-phgx".freeze
-  s.rubygems_version = "3.1.2".freeze
+  s.rubygems_version = "3.1.4".freeze
   s.summary = "Data-mining and statistics".freeze
-  s.test_files = ["test/test_helper.rb".freeze, "test/rbbt/vector/test_model.rb".freeze, "test/rbbt/vector/model/test_tensorflow.rb".freeze, "test/rbbt/vector/model/test_spaCy.rb".freeze, "test/rbbt/vector/model/test_svm.rb".freeze, "test/rbbt/statistics/test_random_walk.rb".freeze, "test/rbbt/statistics/test_fisher.rb".freeze, "test/rbbt/statistics/test_fdr.rb".freeze, "test/rbbt/statistics/test_hypergeometric.rb".freeze, "test/rbbt/test_stan.rb".freeze, "test/rbbt/matrix/test_barcode.rb".freeze, "test/rbbt/test_ml_task.rb".freeze, "test/rbbt/network/test_paths.rb".freeze]
+  s.test_files = ["test/rbbt/network/test_paths.rb".freeze, "test/rbbt/matrix/test_barcode.rb".freeze, "test/rbbt/statistics/test_random_walk.rb".freeze, "test/rbbt/statistics/test_fisher.rb".freeze, "test/rbbt/statistics/test_fdr.rb".freeze, "test/rbbt/statistics/test_hypergeometric.rb".freeze, "test/rbbt/test_ml_task.rb".freeze, "test/rbbt/vector/test_model.rb".freeze, "test/rbbt/vector/model/test_spaCy.rb".freeze, "test/rbbt/vector/model/test_tensorflow.rb".freeze, "test/rbbt/vector/model/test_svm.rb".freeze, "test/rbbt/test_stan.rb".freeze, "test/test_helper.rb".freeze]
 
   if s.respond_to? :specification_version then
     s.specification_version = 4
