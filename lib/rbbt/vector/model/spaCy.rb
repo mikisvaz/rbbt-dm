@@ -30,6 +30,7 @@ class SpaCyModel < VectorModel
     @train_model = Proc.new do |file, features, labels|
       texts = features
       docs = []
+      unique_labels = labels.uniq
       tmpconfig = File.join(file, 'config')
       tmptrain = File.join(file, 'train.spacy')
       SpaCy.config(@config, tmpconfig)
@@ -37,14 +38,11 @@ class SpaCyModel < VectorModel
         nlp = SpaCy.nlp(lang)
         docs = []
         RbbtPython.iterate nlp.pipe(texts.zip(labels), as_tuples: true), :bar => "Training documents into spacy format" do |doc,label|
-          doc.cats[label] = 1
-          #if %w(1 true pos).include?(label.to_s.downcase) 
-          #  doc.cats["positive"] = 1
-          #  doc.cats["negative"] = 0
-          #else
-          #  doc.cats["positive"] = 0
-          #  doc.cats["negative"] = 1
-          #end
+          unique_labels.each do |other_label|
+            next if other_label == label
+            doc.cats[other_label] = false
+          end
+          doc.cats[label] = true
           docs << doc
         end
 
@@ -69,7 +67,6 @@ class SpaCyModel < VectorModel
             cats = nlp.(text).cats
             bar.tick
             cats.sort_by{|l,v| v.to_f }.last.first
-            #cats['positive'] > cats['negative']  ? 1 : 0
           end
         end
       end
