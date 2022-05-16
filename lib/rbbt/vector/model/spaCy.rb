@@ -56,8 +56,9 @@ class SpaCyModel < VectorModel
       CMD.cmd_log(:spacy, "train #{tmpconfig} --output #{file} --paths.train #{tmptrain} --paths.dev #{tmptrain}",  "--gpu-id" => gpu)
     end
  
-    @eval_model = Proc.new do |file, features|
+    @eval_model = Proc.new do |file, features,list|
       texts = features
+      texts = [texts] unless list
 
       docs = []
       SpaCyModel.spacy do
