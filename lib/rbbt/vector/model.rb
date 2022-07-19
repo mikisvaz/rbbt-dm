@@ -53,6 +53,13 @@ features = cbind(features, label = labels);
     "features[['#{name}']] = factor(features[['#{name}']], levels=#{R.ruby2R levels})"
   end * "\n" if factor_levels }
 #{code}
+# Save used factor levels
+factor_levels = c()
+for (c in names(features)){
+  if (is.factor(features[[c]]))
+    factor_levels[c] = paste(levels(features[[c]]), collapse="\t")
+}
+rbbt.tsv.write("#{model_file}.factor_levels", factor_levels, names=c('Levels'), type='flat')
 save(model, file='#{model_file}')
       EOF
     end
@@ -149,6 +156,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     if factor_levels.nil?
       if File.exists?(@levels_file)
         @factor_levels = YAML.load(Open.read(@levels_file))
+      end
+      if File.exists?(@model_file + '.factor_levels')
+        @factor_levels = TSV.open(@model_file + '.factor_levels')
       end
     else
       @factor_levels = factor_levels 
