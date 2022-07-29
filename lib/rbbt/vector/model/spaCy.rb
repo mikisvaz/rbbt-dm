@@ -67,7 +67,7 @@ class SpaCyModel < VectorModel
 
         docs = nlp.pipe(texts)
         RbbtPython.collect docs, :bar => bar do |d|
-          d.cats.sort_by{|l,v| v.to_f }.last.first
+          d.cats.sort_by{|l,v| v.to_f || 0 }.last.first
         end
         #nlp.(docs).cats.collect{|cats| cats.sort_by{|l,v| v.to_f }.last.first }
         #Log::ProgressBar.with_bar texts.length, :desc => "Evaluating documents" do |bar|
