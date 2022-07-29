@@ -62,13 +62,18 @@ class SpaCyModel < VectorModel
       SpaCyModel.spacy do
         nlp = spacy.load("#{file}/model-best")
 
-        Log::ProgressBar.with_bar texts.length, :desc => "Evaluating documents" do |bar|
-          texts.collect do |text|
-            cats = nlp.(text).cats
-            bar.tick
-            cats.sort_by{|l,v| v.to_f }.last.first
-          end
+        docs = nlp.pipe(texts)
+        RbbtPython.collect docs do |d|
+          d.cats.sort_by{|l,v| v.to_f }.last.first
         end
+        #nlp.(docs).cats.collect{|cats| cats.sort_by{|l,v| v.to_f }.last.first }
+        #Log::ProgressBar.with_bar texts.length, :desc => "Evaluating documents" do |bar|
+        #  texts.collect do |text|
+        #    cats = nlp.(text).cats
+        #    bar.tick
+        #    cats.sort_by{|l,v| v.to_f }.last.first
+        #  end
+        #end
       end
     end
   end

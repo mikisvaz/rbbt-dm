@@ -96,10 +96,11 @@ class TestSpaCyModel < Test::Unit::TestCase
 
       model = SpaCyModel.new(
         dir, 
-        "gpu/textcat_accuracy.conf"
+        "cpu/textcat_efficiency.conf"
       )
 
 
+      Rbbt::Config.set 'gpu_id', nil, :spacy
       require 'rbbt/tsv/csv'
       url = "https://raw.githubusercontent.com/hanzhang0420/Women-Clothing-E-commerce/master/Womens%20Clothing%20E-Commerce%20Reviews.csv"
       tsv = TSV.csv(Open.open(url))
