@@ -32,6 +32,7 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
      random_forest.rb
      tensorflow.rb
      spaCy.rb
+     util.rb
     }
    }
    tensorflow.rb

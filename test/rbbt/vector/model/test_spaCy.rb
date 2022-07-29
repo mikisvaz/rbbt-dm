@@ -105,6 +105,7 @@ class TestSpaCyModel < Test::Unit::TestCase
       url = "https://raw.githubusercontent.com/hanzhang0420/Women-Clothing-E-commerce/master/Womens%20Clothing%20E-Commerce%20Reviews.csv"
       tsv = TSV.csv(Open.open(url))
       tsv = tsv.reorder("Review Text", ["Recommended IND"]).to_single
+      tsv = tsv.subset(tsv.keys.sample(100))
 
       good = tsv.select("Recommended IND" => '1')
       bad = tsv.select("Recommended IND" => '0')

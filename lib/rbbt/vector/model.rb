@@ -1,4 +1,5 @@
 require 'rbbt/util/R'
+require 'rbbt/vector/model/util'
 
 class VectorModel
   attr_accessor :directory, :model_file, :extract_features, :train_model, :eval_model

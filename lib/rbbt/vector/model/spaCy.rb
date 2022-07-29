@@ -34,10 +34,12 @@ class SpaCyModel < VectorModel
       tmpconfig = File.join(file, 'config')
       tmptrain = File.join(file, 'train.spacy')
       SpaCy.config(@config, tmpconfig)
+
+      bar = bar(features.length, "Training documents into spacy format")
       SpaCyModel.spacy do
         nlp = SpaCy.nlp(lang)
         docs = []
-        RbbtPython.iterate nlp.pipe(texts.zip(labels), as_tuples: true), :bar => "Training documents into spacy format" do |doc,label|
+        RbbtPython.iterate nlp.pipe(texts.zip(labels), as_tuples: true), :bar => bar do |doc,label|
           unique_labels.each do |other_label|
             next if other_label == label
             doc.cats[other_label] = false
@@ -59,11 +61,12 @@ class SpaCyModel < VectorModel
       texts = [texts] unless list
 
       docs = []
+      bar = bar(features.length, "Evaluating model")
       SpaCyModel.spacy do
         nlp = spacy.load("#{file}/model-best")
 
         docs = nlp.pipe(texts)
-        RbbtPython.collect docs do |d|
+        RbbtPython.collect docs, :bar => bar do |d|
           d.cats.sort_by{|l,v| v.to_f }.last.first
         end
         #nlp.(docs).cats.collect{|cats| cats.sort_by{|l,v| v.to_f }.last.first }
