@@ -401,7 +401,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     ensure
       @features = orig_features
       @labels = orig_labels
-    end
+    end unless folds == -1
     self.train unless folds == 1
     res
   end
