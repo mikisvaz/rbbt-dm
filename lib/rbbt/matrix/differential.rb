@@ -1,4 +1,5 @@
 require 'rbbt/util/R'
+require 'rbbt/matrix'
 
 class RbbtMatrix
   def differential(main, contrast, path = nil)
