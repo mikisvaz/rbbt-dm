@@ -32,9 +32,7 @@ class RbbtMatrix
         trend = false
         two_channel = false
       when 'fpkm'
-        log2 = true
-        trend = true
-        two_channel = false
+        type = "DESeq"
       when 'log2 ratio', 'transformed count'
         log2 = false
         trend = false
@@ -54,6 +52,7 @@ class RbbtMatrix
 source('#{Rbbt.share.R["MA.R"].find(:lib)}')
 
 data = rbbt.dm.matrix.differential(#{ R.ruby2R data_file }, 
+  type = #{R.ruby2R type},
   main = #{R.ruby2R(main_samples)}, 
   contrast = #{R.ruby2R(contrast_samples)}, 
   log2=#{ R.ruby2R log2 }, 
