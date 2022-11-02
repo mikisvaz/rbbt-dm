@@ -66,17 +66,21 @@ rbbt.GE.barcode.mode <- function(matrix_file, output_file, sd.factor = 2, key.fi
 rbbt.GE.activity_cluster <- function(matrix_file, output_file, key.field = "ID", clusters = c(2,3)){
 
     rbbt.require('mclust')
+    rbbt.require('R.utils')
 
     data = rbbt.tsv.numeric(matrix_file)
 
-    classes = apply(data,1,function(row){
+    classes = apply(data, 1, function(row){
                     row.na = is.na(row)
                     clust = rep(NA, length(row))
-                    if (sum(row.na) <= length(row) - 5){
+                    rbbt.log(str(row))
+                    if (sum(row.na) <= length(row) - 5 && length(unique(row[!row.na])) > 4){
                         clust[!row.na] = densityMclust(row[!row.na], prior=priorControl(), G=clusters)$classification
+                        rbbt.log(str(clust))
                     }
                     clust
     })
+    rbbt.log("DONE")
 
     classes = data.frame(t(classes))
 
