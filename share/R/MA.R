@@ -69,7 +69,7 @@ rbbt.dm.matrix.differential.DESeq <- function(expr, subset.main, subset.contrast
     condition_values = rep(c("contrast"), length(subset.contrast))
     condition_values = c(condition_values, rep(c("condition"), length(subset.main)))
     names = c(subset.contrast, subset.main)
-    conditions = data.frame(condition = as.factor(condition_values))
+    conditions = data.frame(condition = factor(condition_values, levels=c("contrast", "condition")))
     
 
     expr = expr[,names]
@@ -79,7 +79,7 @@ rbbt.dm.matrix.differential.DESeq <- function(expr, subset.main, subset.contrast
 
     filter <- HTSFilter(dds, s.len=25, plot=FALSE)$filteredData
 
-    res <- lfcShrink(filter, type="apeglm", coef="condition_contrast_vs_condition")
+    res <- lfcShrink(filter, type="apeglm", coef="condition_condition_vs_contrast")
 
     return(res)
 }
