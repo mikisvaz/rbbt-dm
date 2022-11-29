@@ -143,7 +143,7 @@ class RbbtMatrix
   def transpose(id = nil)
     name = data_file =~ /:>/ ? File.basename(data_file) : data_file
 
-    file = Persist.persist(data_file, :tsv, :prefix => "Transpose", :check => [data_file],  :dir => RbbtMatrix.matrix_dir.values, :no_load => true) do
+    file = Persist.persist(data_file, :tsv, :prefix => "Transpose", :check => [data_file], :other => {:id => id},  :dir => RbbtMatrix.matrix_dir.values, :no_load => true) do
 
       data = data_file.tsv(:cast => :to_f, :type => :double).transpose(id)
 
