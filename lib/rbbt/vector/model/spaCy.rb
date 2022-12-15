@@ -23,6 +23,7 @@ class SpaCyModel < VectorModel
               else
                 config
               end
+    Log.debug "SpaCy model loading config from: #{@config}"
     @lang = lang
 
     super(dir)
