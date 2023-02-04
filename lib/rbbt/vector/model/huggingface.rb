@@ -1,6 +1,7 @@
 require 'rbbt/vector/model'
 require 'rbbt/util/python'
 
+RbbtPython.add_path Rbbt.python.find(:lib)
 RbbtPython.init_rbbt
 
 class HuggingfaceModel < VectorModel
