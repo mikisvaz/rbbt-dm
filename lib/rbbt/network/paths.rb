@@ -3,7 +3,15 @@ require 'fc'
 module Paths
 
   def self.dijkstra(adjacency, start_node, end_node = nil, max_steps = nil)
+
     return nil unless adjacency.include? start_node
+
+    case end_node
+    when String
+      return nil unless adjacency.values.flatten.include? end_node
+    when Array
+      return nil unless (adjacency.values.flatten & end_node).any?
+    end
 
     active = FastContainers::PriorityQueue.new(:min)
     distances = Hash.new { 1.0 / 0.0 } 

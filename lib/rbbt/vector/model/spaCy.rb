@@ -23,6 +23,7 @@ class SpaCyModel < VectorModel
               else
                 config
               end
+    Log.debug "SpaCy model loading config from: #{@config}"
     @lang = lang
 
     super(dir)
@@ -63,11 +64,16 @@ class SpaCyModel < VectorModel
       docs = []
       bar = bar(features.length, "Evaluating model")
       SpaCyModel.spacy do
+        gpu = Rbbt::Config.get('gpu_id', :spacy, :spacy_train, :default => 0)
+        gpu = gpu.to_i if gpu && gpu != ""
+        spacy.require_gpu(gpu) if gpu
         nlp = spacy.load("#{file}/model-best")
 
         docs = nlp.pipe(texts)
         RbbtPython.collect docs, :bar => bar do |d|
-          d.cats.sort_by{|l,v| v.to_f || 0 }.last.first
+          Misc.timeout_insist(20) do
+            d.cats.sort_by{|l,v| v.to_f || 0 }.last.first
+          end
         end
         #nlp.(docs).cats.collect{|cats| cats.sort_by{|l,v| v.to_f }.last.first }
         #Log::ProgressBar.with_bar texts.length, :desc => "Evaluating documents" do |bar|
