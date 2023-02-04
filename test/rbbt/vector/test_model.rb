@@ -282,6 +282,7 @@ cat(label, file="#{results}");
         model.add features, label
       end
 
+      iii model.eval("1;1;1")
       assert model.eval("1;1;1").to_f > 0.5
       assert model.eval("0;0;0").to_f < 0.5
     end
@@ -507,6 +508,29 @@ label = predict(model, features);
       end
 
     end
+  end
+
+  def test_python
+    require 'rbbt/util/python'
+    TmpFile.with_file do |dir|
+      model = VectorModel.new dir
+
+      model.eval_model do |file, elements|
+        elements = [elements] unless Array === elements
+        RbbtPython.binding_run  do
+          pyimport :torch
+          rand = torch.rand(1).numpy[0].to_f
+          elements.collect{|e| e >= rand ? 1 : 0 }
+        end
+      end
+      p1, p2 = model.eval [0.9, 0.1]
+      assert p2 <= p1
+
+      model = VectorModel.new dir
+      assert p2 <= p1
+
+    end
+
   end
 
 

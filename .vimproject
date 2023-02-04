@@ -32,14 +32,19 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
      random_forest.rb
      tensorflow.rb
      spaCy.rb
+     huggingface.rb
+     huggingface.old2.rb
      util.rb
     }
    }
    tensorflow.rb
   }
  }
- python=python{
-  model_mnist.py
+ python=python filter="*.py"{
+  rbbt_dm=rbbt_dm{
+   __init__.py
+   huggingface.py
+  }
  }
  test=test {
   test_helper.rb

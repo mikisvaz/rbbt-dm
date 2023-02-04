@@ -2,8 +2,29 @@ require 'rbbt/util/R'
 require 'rbbt/vector/model/util'
 
 class VectorModel
-  attr_accessor :directory, :model_file, :extract_features, :train_model, :eval_model
+  attr_accessor :directory, :model_file, :extract_features, :train_model, :eval_model, :post_process
   attr_accessor :features, :names, :labels, :factor_levels
+
+  def extract_features(&block)
+    @extract_features = block if block_given?
+    @extract_features
+  end
+
+  def train_model(&block)
+    @train_model = block if block_given?
+    @train_model
+  end
+
+  def eval_model(&block)
+    @eval_model = block if block_given?
+    @eval_model
+  end
+
+  def post_process(&block)
+    @post_process = block if block_given?
+    @post_process
+  end
+
 
   def self.R_run(model_file, features, labels, code, names = nil, factor_levels = nil)
     TmpFile.with_file do |feature_file|
@@ -101,25 +122,27 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
   def __load_method(file)
     code = Open.read(file)
-    code.sub!(/.*Proc\.new/, "Proc.new")
+    code.sub!(/.*(\sdo\b|{)/, 'Proc.new\1')
     instance_eval code, file
   end
 
-  def initialize(directory, extract_features = nil, train_model = nil, eval_model = nil, names = nil, factor_levels = nil)
+  def initialize(directory = nil, extract_features = nil, train_model = nil, eval_model = nil, names = nil, factor_levels = nil)
     @directory = directory
-    FileUtils.mkdir_p @directory unless File.exists? @directory
+    if @directory
+      FileUtils.mkdir_p @directory unless File.exists?(@directory)
 
-    @model_file = File.join(@directory, "model")
-    @extract_features_file = File.join(@directory, "features")
-    @train_model_file = File.join(@directory, "train_model")
-    @eval_model_file = File.join(@directory, "eval_model")
-    @train_model_file_R = File.join(@directory, "train_model.R")
-    @eval_model_file_R = File.join(@directory, "eval_model.R")
-    @names_file = File.join(@directory, "feature_names")
-    @levels_file = File.join(@directory, "levels")
+      @model_file = File.join(@directory, "model")
+      @extract_features_file = File.join(@directory, "features")
+      @train_model_file = File.join(@directory, "train_model")
+      @eval_model_file = File.join(@directory, "eval_model")
+      @train_model_file_R = File.join(@directory, "train_model.R")
+      @eval_model_file_R = File.join(@directory, "eval_model.R")
+      @names_file = File.join(@directory, "feature_names")
+      @levels_file = File.join(@directory, "levels")
+    end
 
     if extract_features.nil?
-      if File.exists?(@extract_features_file)
+      if @extract_features_file && File.exists?(@extract_features_file)
         @extract_features = __load_method @extract_features_file
       end
     else
@@ -127,9 +150,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     if train_model.nil?
-      if File.exists?(@train_model_file)
+      if @train_model_file && File.exists?(@train_model_file)
         @train_model = __load_method @train_model_file
-      elsif File.exists?(@train_model_file_R)
+      elsif @train_model_file_R && File.exists?(@train_model_file_R)
         @train_model = Open.read(@train_model_file_R)
       end
     else
@@ -137,9 +160,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     if eval_model.nil?
-      if File.exists?(@eval_model_file)
+      if @eval_model_file && File.exists?(@eval_model_file)
         @eval_model = __load_method @eval_model_file
-      elsif File.exists?(@eval_model_file_R)
+      elsif @eval_model_file_R && File.exists?(@eval_model_file_R)
         @eval_model = Open.read(@eval_model_file_R)
       end
     else
@@ -147,7 +170,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     if names.nil?
-      if File.exists?(@names_file)
+      if @names_file && File.exists?(@names_file)
         @names = Open.read(@names_file).split("\n")
       end
     else
@@ -155,10 +178,10 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     if factor_levels.nil?
-      if File.exists?(@levels_file)
+      if @levels_file && File.exists?(@levels_file)
         @factor_levels = YAML.load(Open.read(@levels_file))
       end
-      if File.exists?(@model_file + '.factor_levels')
+      if @model_file && File.exists?(@model_file + '.factor_levels')
         @factor_levels = TSV.open(@model_file + '.factor_levels')
       end
     else
@@ -175,7 +198,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
   end
 
   def add(element, label = nil)
-    features = @extract_features ? extract_features.call(element) : element
+    features = @extract_features ? self.instance_exec(element, &@extract_features) : element
     @features << features
     @labels << label 
   end
@@ -186,7 +209,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
         add(elem, label)
       end
     else
-      features = @extract_features.call(nil, elements)
+      features = self.instance_exec(nil, elements, &@extract_features)
       @features.concat  features
       @labels.concat labels if labels
     end
@@ -223,9 +246,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
   def train
     case 
-    when Proc === train_model
-      train_model.call(@model_file, @features, @labels, @names, @factor_levels)
-    when String === train_model
+    when Proc === @train_model
+      self.instance_exec(@model_file, @features, @labels, @names, @factor_levels, &@train_model)
+    when String === @train_model
       VectorModel.R_train(@model_file,  @features, @labels, train_model, @names, @factor_levels)
     end
     save_models
@@ -236,32 +259,44 @@ cat(paste(label, sep="\\n", collapse="\\n"));
   end
 
   def eval(element)
-    case 
-    when Proc === @eval_model
-      @eval_model.call(@model_file, @extract_features.call(element), false, nil, @names, @factor_levels)
-    when String === @eval_model
-      VectorModel.R_eval(@model_file,  @extract_features.call(element), false, eval_model, @names, @factor_levels)
-    end
+    features = @extract_features.nil? ? element : self.instance_exec(element, &@extract_features)
+
+    result = case 
+             when Proc === @eval_model
+               self.instance_exec(@model_file, features, false, nil, @names, @factor_levels, &@eval_model)
+             when String === @eval_model
+               VectorModel.R_eval(@model_file, features, false, eval_model, @names, @factor_levels)
+             else
+               raise "No @eval_model function or R script"
+             end
+
+    result = self.instance_exec(result, &@post_process) if Proc === @post_process 
+
+    result
   end
 
   def eval_list(elements, extract = true)
 
     if extract && ! @extract_features.nil? 
       features = if @extract_features.arity == 1
-                   elements.collect{|element| @extract_features.call(element) }
+                   elements.collect{|element| self.instance_exec(element, &@extract_features) }
                  else
-                   @extract_features.call(nil, elements)
+                   self.instance_exec(nil, elements, &@extract_features)
                  end
     else
       features = elements
     end
 
-    case 
-    when Proc === eval_model
-      eval_model.call(@model_file, features, true, nil, @names, @factor_levels)
-    when String === eval_model
-      VectorModel.R_eval(@model_file, features, true, eval_model, @names, @factor_levels)
-    end
+    result = case 
+             when Proc === eval_model
+               self.instance_exec(@model_file, features, true, nil, @names, @factor_levels, &@eval_model)
+             when String === eval_model
+               VectorModel.R_eval(@model_file, features, true, eval_model, @names, @factor_levels)
+             end
+
+    result = self.instance_exec(result, &@post_process) if Proc === @post_process 
+
+    result
   end
 
   #def cross_validation(folds = 10)
