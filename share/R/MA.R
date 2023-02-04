@@ -1,4 +1,4 @@
-rbbt.require('limma')
+rbbt.require('edgeR')
 
 #########################################################################
 # Model processing 
@@ -57,6 +57,33 @@ rbbt.dm.matrix.differential.limma.twoside <- function(expr, subset.main, subset.
     return(list(t= fit$t[,2], p.values= fit$p.value[,2]));
 }
 
+rbbt.dm.matrix.differential.DESeq <- function(expr, subset.main, subset.contrast) {
+    rbbt.require('DESeq2')
+    rbbt.require('HTSFilter')
+    rbbt.require('apeglm')
+
+    #expr[expr == 0] = NA
+    good.rows = apply(is.na(expr),1,sum) == 0
+    expr = expr[good.rows,]
+
+    condition_values = rep(c("contrast"), length(subset.contrast))
+    condition_values = c(condition_values, rep(c("condition"), length(subset.main)))
+    names = c(subset.contrast, subset.main)
+    conditions = data.frame(condition = factor(condition_values, levels=c("contrast", "condition")))
+    
+
+    expr = expr[,names]
+
+    dds <- DESeqDataSetFromMatrix(countData = round(expr), colData = conditions, design = ~ condition)
+    dds <- DESeq(dds)
+
+    filter <- HTSFilter(dds, s.len=25, plot=FALSE)$filteredData
+
+    res <- lfcShrink(filter, type="apeglm", coef="condition_condition_vs_contrast")
+
+    return(res)
+}
+
 
 rbbt.dm.matrix.guess.log2 <- function(m, two.channel){
     if (two.channel){
@@ -66,34 +93,24 @@ rbbt.dm.matrix.guess.log2 <- function(m, two.channel){
     }
 }
 
-rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALSE, outfile = NULL, key.field = NULL, two.channel = NULL, namespace = NULL, eBayes.trend = FALSE){
-    if (is.null(namespace)) namespace = rbbt.default_code("Hsa")
-    data = data.matrix(rbbt.tsv(file));
-    dimnames = dimnames(data)
-    original.dimnames = dimnames;
-
-    dimnames[[1]] = make.names(dimnames[[1]])
-    dimnames[[2]] = make.names(dimnames[[2]])
-
-    dimnames(data) <- dimnames
-    main <- make.names(main);
-    contrast <- make.names(contrast);
-
-    data[data == 0] = NA
-    good.rows = apply(is.na(data),1,sum) != dim(data)[2]
-    data = data[good.rows,]
-
-    ids = rownames(data);
-    if (is.null(key.field)){ key.field = "ID" }
-
+rbbt.dm.matrix.differential.limma <- function(data, main, contrast=NULL, log2=NULL, two.channel=NULL, eBayes.trend=NULL){
     if (is.null(log2)){
       log2 = rbbt.dm.matrix.guess.log2(data, two.channel)
     }
 
     if (log2){
-       data = log2(data);
+       cutoff <- 1
+       drop <- which(apply(data, 1, max) < cutoff)
        min = min(data[data != -Inf])
        data[data == -Inf] = min
+       data <- DGEList(data)
+       data <- calcNormFactors(data)
+       data = cpm(data, log=TRUE, prior.count=3)
+       data <- data[-drop,]
+    }else{
+       data[data == 0] = NA
+       good.rows = apply(is.na(data),1,sum) != dim(data)[2]
+       data = data[good.rows,]
     }
 
     if (is.null(contrast)){
@@ -135,20 +152,50 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, log2 = FALS
 
 
     if (! is.null(limma) && sum(is.na(limma$t)) != length(limma$t)){
+       ids = rownames(data)
        result = data.frame(ratio = ratio[ids], t.values = limma$t[ids], p.values = limma$p.values[ids])
        result["adjusted.p.values"] = p.adjust(abs(result$p.values), "fdr") * sign(result$p.values)
     }else{
        result = data.frame(ratio = ratio)
     }
 
-    rownames(result) <- original.dimnames[[1]][good.rows]
+    rownames(result) <- rownames(data)
+    result = result[!is.na(result$ratio),]
 
-   if (is.null(outfile)){
-       return(result);
-   }else{
-       rbbt.tsv.write(outfile, result, key.field, paste(":type=:list#:cast=:to_f#:namespace=", namespace, "#comment=Negative values mark downregulation", sep=""));
-       return(NULL);
-   }
+    return(result)
+}
+
+rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, type = 'limma', log2 = FALSE, outfile = NULL, key.field = NULL, two.channel = NULL, namespace = NULL, eBayes.trend = FALSE){
+    data = data.matrix(rbbt.tsv(file));
+    dimnames = dimnames(data)
+
+    original.dimnames = dimnames;
+
+    #dimnames[[1]] = make.names(dimnames[[1]])
+    dimnames[[2]] = make.names(dimnames[[2]])
+
+    dimnames(data) <- dimnames
+    main <- make.names(main);
+
+    if (! is.null(contrast)){
+        contrast <- make.names(contrast);
+    }
+
+    if (type == 'limma')
+        result = rbbt.dm.matrix.differential.limma(data, main, contrast, log2, two.channel, eBayes.trend)
+    else
+        result = rbbt.dm.matrix.differential.DESeq(data, main, contrast)
+
+    if (is.null(outfile)){
+        return(result);
+    }else{
+        if (is.null(key.field)){ key.field = "ID" }
+        if (is.null(namespace)) namespace = rbbt.default_code("Hsa")
+
+        rbbt.tsv.write(outfile, result, key.field, paste(":type=:list#:cast=:to_f#:namespace=", namespace, "#comment=Negative values mark downregulation", sep=""));
+        return(NULL);
+    }
+
 }
 
 

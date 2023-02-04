@@ -9,7 +9,7 @@ source('#{Rbbt.share.R['barcode.R'].find}')
 rbbt.GE.barcode.mode(#{ R.ruby2R self.data_file }, #{ R.ruby2R outfile }, #{ R.ruby2R factor })
     EOF
 
-    R.run(cmd)
+    R.run(cmd, :monitor => true)
   end
 
   def barcode_ruby(outfile, factor = 2)
@@ -55,7 +55,7 @@ source('#{Rbbt.share.R['barcode.R'].find}')
 rbbt.GE.activity_cluster(#{ R.ruby2R self.data_file }, #{ R.ruby2R outfile }, #{R.ruby2R key_field}, #{R.ruby2R clusters})
     EOF
 
-    R.run(cmd)
+    R.run(cmd, :monitor => true)
   end
 
 

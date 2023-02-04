@@ -21,6 +21,26 @@ N4 N5
 
     path = Paths.dijkstra(network, start_node, [end_node])
     assert_equal %w(N1 N2 N4 N5), path.reverse
+
+    path = Paths.dijkstra(network, start_node, end_node)
+    assert_equal %w(N1 N2 N4 N5), path.reverse
+  end
+
+  def test_dijsktra_missing
+    network_txt=<<-EOF
+#: :sep=/\s/#:type=:flat
+#Start End
+N1 N2
+N2 N3 N4
+N4 N5
+    EOF
+    network = TSV.open(StringIO.new(network_txt))
+
+    start_node = "N1"
+    end_node = "M5"
+
+    path = Paths.dijkstra(network, start_node, [end_node])
+    assert_nil path
   end
 
   def test_weighted_dijsktra
