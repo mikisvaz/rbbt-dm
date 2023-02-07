@@ -39,6 +39,8 @@ class TestHuggingface < Test::Unit::TestCase
       model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
       model.class_labels = ["Bad", "Good"]
 
+      model.training_args.merge! :auto_find_batch_size => true
+
       assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
 
       100.times do

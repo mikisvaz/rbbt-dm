@@ -6,7 +6,7 @@ RbbtPython.init_rbbt
 
 class HuggingfaceModel < VectorModel
 
-  attr_accessor :checkpoint, :task, :locate_tokens, :class_labels, :class_weights
+  attr_accessor :checkpoint, :task, :locate_tokens, :class_labels, :class_weights, :training_args
 
   def tsv_dataset(tsv_dataset_file, elements, labels = nil)
 
@@ -48,11 +48,11 @@ class HuggingfaceModel < VectorModel
       Open.mkdir File.dirname(tsv_file)
 
       if labels
-        training_args = call_method(:training_args, output_dir)
+        training_args = call_method(:training_args, output_dir, **@training_args)
         call_method(:train_model, @model, @tokenizer, training_args, tsv_dataset(tsv_file, elements, labels), @class_weights)
       else
         if Array === elements
-          training_args = call_method(:training_args, output_dir)
+          training_args = call_method(:training_args, output_dir, **@training_args)
           call_method(:predict_model, @model, @tokenizer, training_args, tsv_dataset(tsv_file, elements), @locate_tokens)
         else
           call_method(:eval_model, @model, @tokenizer, [elements], @locate_tokens)
@@ -78,6 +78,8 @@ class HuggingfaceModel < VectorModel
     init_model
 
     @locate_tokens = @tokenizer.special_tokens_map["mask_token"]  if @task == "MaskedLM"
+
+    @training_args = {}
 
     train_model do |file,elements,labels|
       run_model(elements, labels)
