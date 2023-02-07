@@ -51,17 +51,40 @@ def training_args(*args, **kwargs):
     return training_args
 
 
-def train_model(model, tokenizer, training_args, tsv_file):
+def train_model(model, tokenizer, training_args, tsv_file, class_weights=None):
     from transformers import Trainer
 
     tokenized_dataset = tsv_dataset(tokenizer, tsv_file)
 
-    trainer = Trainer(
-            model,
-            training_args,
-            train_dataset = tokenized_dataset["train"],
-            tokenizer = tokenizer
-            )
+    if (not class_weights == None):
+      import torch
+      from torch import nn
+
+      class WeightTrainer(Trainer):
+          def compute_loss(self, model, inputs, return_outputs=False):
+              labels = inputs.get("labels")
+              # forward pass
+              outputs = model(**inputs)
+              logits = outputs.get('logits')
+              # compute custom loss
+              loss_fct = nn.CrossEntropyLoss(weight=torch.tensor(class_weights).to(model.device))
+              loss = loss_fct(logits.view(-1, self.model.config.num_labels), labels.view(-1))
+              return (loss, outputs) if return_outputs else loss
+
+      trainer = WeightTrainer(
+              model,
+              training_args,
+              train_dataset = tokenized_dataset["train"],
+              tokenizer = tokenizer
+              )
+    else:
+
+      trainer = Trainer(
+              model,
+              training_args,
+              train_dataset = tokenized_dataset["train"],
+              tokenizer = tokenizer
+              )
 
     trainer.train()
 
@@ -90,7 +113,6 @@ def find_tokens_in_input(dataset, token_ids):
     return position_rows
 
 
-
 def predict_model(model, tokenizer, training_args, tsv_file, locate_tokens = None):
     from transformers import Trainer
 
@@ -109,4 +131,5 @@ def predict_model(model, tokenizer, training_args, tsv_file, locate_tokens = Non
         return dict(result=result, token_positions=token_positions)
     else:
         return result
+
 

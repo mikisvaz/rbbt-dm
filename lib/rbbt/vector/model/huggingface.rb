@@ -6,7 +6,7 @@ RbbtPython.init_rbbt
 
 class HuggingfaceModel < VectorModel
 
-  attr_accessor :checkpoint, :task, :locate_tokens, :class_labels
+  attr_accessor :checkpoint, :task, :locate_tokens, :class_labels, :class_weights
 
   def tsv_dataset(tsv_dataset_file, elements, labels = nil)
 
@@ -49,7 +49,7 @@ class HuggingfaceModel < VectorModel
 
       if labels
         training_args = call_method(:training_args, output_dir)
-        call_method(:train_model, @model, @tokenizer, training_args, tsv_dataset(tsv_file, elements, labels))
+        call_method(:train_model, @model, @tokenizer, training_args, tsv_dataset(tsv_file, elements, labels), @class_weights)
       else
         if Array === elements
           training_args = call_method(:training_args, output_dir)
@@ -136,6 +136,3 @@ class HuggingfaceModel < VectorModel
   end
 end
 
-if __FILE__ == $0
-
-end
