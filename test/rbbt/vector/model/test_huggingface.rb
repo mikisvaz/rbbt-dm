@@ -123,9 +123,7 @@ class TestHuggingface < Test::Unit::TestCase
     model = HuggingfaceModel.new "MaskedLM", checkpoint
     assert_equal 3, model.eval(["Paris is the [MASK] of the France.", "The [MASK] worked very hard all the time.", "The [MASK] arrested the dangerous [MASK]."]).
       reject{|v| v.empty?}.length
-
   end
-
 
 end
 

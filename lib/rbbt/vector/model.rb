@@ -413,6 +413,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
         @features = train_set
         @labels = train_labels
 
+        self.reset_model if self.respond_to? :reset_model
         self.train
         predictions = self.eval_list test_set, false
 
@@ -437,6 +438,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       @features = orig_features
       @labels = orig_labels
     end unless folds == -1
+    self.reset_model if self.respond_to? :reset_model
     self.train unless folds == 1
     res
   end

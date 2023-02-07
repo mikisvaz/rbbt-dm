@@ -61,13 +61,21 @@ class HuggingfaceModel < VectorModel
     end
   end
 
+  def init_model
+    @model, @tokenizer = call_method(:load_model_and_tokenizer, @task, @checkpoint)
+  end
+
+  def reset_model
+    init_model
+  end
+
   def initialize(task, initial_checkpoint = nil, *args)
     super(*args)
     @task = task
 
     @checkpoint = model_file && File.exists?(model_file)? model_file : initial_checkpoint
 
-    @model, @tokenizer = call_method(:load_model_and_tokenizer, @task, @checkpoint)
+    init_model
 
     @locate_tokens = @tokenizer.special_tokens_map["mask_token"]  if @task == "MaskedLM"
 
