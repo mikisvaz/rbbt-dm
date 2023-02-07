@@ -3,6 +3,22 @@ require 'rbbt/vector/model/huggingface'
 
 class TestHuggingface < Test::Unit::TestCase
 
+  def test_pipeline
+    require 'rbbt/util/python'
+    model = VectorModel.new
+    model.post_process do |elements|
+      elements.collect{|e| e['label'] }
+    end
+    model.eval_model do |file, elements|
+      RbbtPython.run :transformers do 
+        classifier ||= transformers.pipeline("sentiment-analysis")
+        classifier.call(elements)
+      end
+    end
+
+    assert_equal ["POSITIVE"], model.eval("I've been waiting for a HuggingFace course my whole life.")
+  end
+
   def test_sst_eval
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
@@ -12,7 +28,6 @@ class TestHuggingface < Test::Unit::TestCase
       model.class_labels = ["Bad", "Good"]
 
       assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
-
     end
   end
 
