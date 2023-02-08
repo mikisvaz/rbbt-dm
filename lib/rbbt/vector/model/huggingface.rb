@@ -154,7 +154,7 @@ class HuggingfaceModel < VectorModel
 
   def reset_model
     @model, @tokenizer = nil
-    Open.rm @model_file
+    Open.rm_rf @model_file
   end
 
 end
