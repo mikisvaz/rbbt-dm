@@ -53,7 +53,7 @@ def load_tsv(tsv_file):
 
 def tsv_dataset(tokenizer, tsv_file):
     dataset = load_tsv(tsv_file)
-    tokenized_dataset = dataset.map(lambda example: tokenizer(example["text"], truncation=True) , batched=True)
+    tokenized_dataset = dataset.map(lambda example: tokenizer(example["text"], truncation=True, max_length=512) , batched=True)
     return tokenized_dataset
 
 def training_args(*args, **kwargs):

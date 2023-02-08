@@ -2,7 +2,7 @@ require 'rbbt/util/R'
 require 'rbbt/vector/model/util'
 
 class VectorModel
-  attr_accessor :directory, :model_file, :extract_features, :train_model, :eval_model, :post_process
+  attr_accessor :directory, :model_file, :extract_features, :train_model, :eval_model, :post_process, :balance
   attr_accessor :features, :names, :labels, :factor_levels
   attr_accessor :model_options
 
@@ -270,19 +270,32 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       Open.write(@post_process_file_R, post_process)
     end
 
-
     Open.write(@levels_file, @factor_levels.to_yaml) if @factor_levels
     Open.write(@names_file, @names * "\n" + "\n") if @names
     Open.write(@options_file, @model_options.to_json) if @model_options
   end
 
   def train
-    case 
-    when Proc === @train_model
-      self.instance_exec(@model_file, @features, @labels, @names, @factor_levels, &@train_model)
-    when String === @train_model
-      VectorModel.R_train(@model_file,  @features, @labels, train_model, @names, @factor_levels)
+    begin
+      if @balance
+        @original_features = @features
+        @original_labels = @labels
+        self.balance_labels
+      end
+
+      case 
+      when Proc === @train_model
+        self.instance_exec(@model_file, @features, @labels, @names, @factor_levels, &@train_model)
+      when String === @train_model
+        VectorModel.R_train(@model_file,  @features, @labels, train_model, @names, @factor_levels)
+      end
+    ensure
+      if @balance
+        @features =  @original_features
+        @labels = @original_labels
+      end
     end
+
     save_models if @directory
   end
 
@@ -438,6 +451,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       @features = orig_features
       @labels = orig_labels
     end unless folds == -1
+
     self.reset_model if self.respond_to? :reset_model
     self.train unless folds == 1
     res

@@ -75,14 +75,6 @@ class SpaCyModel < VectorModel
             d.cats.sort_by{|l,v| v.to_f || 0 }.last.first
           end
         end
-        #nlp.(docs).cats.collect{|cats| cats.sort_by{|l,v| v.to_f }.last.first }
-        #Log::ProgressBar.with_bar texts.length, :desc => "Evaluating documents" do |bar|
-        #  texts.collect do |text|
-        #    cats = nlp.(text).cats
-        #    bar.tick
-        #    cats.sort_by{|l,v| v.to_f }.last.first
-        #  end
-        #end
       end
     end
   end
