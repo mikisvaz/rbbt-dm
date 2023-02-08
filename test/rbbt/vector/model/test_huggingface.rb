@@ -70,6 +70,30 @@ class TestHuggingface < Test::Unit::TestCase
     end
   end
 
+  def test_sst_train_with_labels
+    TmpFile.with_file do |dir|
+      checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+
+      model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
+
+      model.model_options[:class_labels] = %w(Bad Good)
+
+      assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
+
+      100.times do
+        model.add "Dog is good", "Good"
+      end
+
+      model.train
+
+      assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+
+      model = VectorModel.new dir
+      assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+    end
+  end
+
+
   def test_sst_train_no_save
     checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 

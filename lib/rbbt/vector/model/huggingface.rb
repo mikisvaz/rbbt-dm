@@ -6,9 +6,20 @@ RbbtPython.init_rbbt
 
 class HuggingfaceModel < VectorModel
 
-  def self.tsv_dataset(tsv_dataset_file, elements, labels = nil)
+  def self.tsv_dataset(tsv_dataset_file, elements, labels = nil, class_labels = nil)
 
     if labels
+      labels = case class_labels
+               when Array
+                 labels.collect{|l| class_labels.index l}
+               when Hash
+                 inverse_class_labels = {}
+                 class_labels.each{|c,l| inverse_class_labels[l] = c }
+                 labels.collect{|l| inverse_class_labels[l]}
+               else
+                 labels
+               end
+
       Open.write(tsv_dataset_file) do |ffile|
         ffile.puts ["label", "text"].flatten * "\t"
         elements.zip(labels).each do |element,label|
@@ -85,7 +96,7 @@ class HuggingfaceModel < VectorModel
       end
 
       training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, @model_options[:training_args])
-      dataset_file = HuggingfaceModel.tsv_dataset(tsv_file, texts, labels)
+      dataset_file = HuggingfaceModel.tsv_dataset(tsv_file, texts, labels, @model_options[:class_labels])
 
       RbbtPython.call_method("rbbt_dm.huggingface", :train_model, @model, @tokenizer, training_args_obj, dataset_file, @model_options[:class_weights])
 
