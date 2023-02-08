@@ -4,6 +4,7 @@ require 'rbbt/vector/model/util'
 class VectorModel
   attr_accessor :directory, :model_file, :extract_features, :train_model, :eval_model, :post_process
   attr_accessor :features, :names, :labels, :factor_levels
+  attr_accessor :model_options
 
   def extract_features(&block)
     @extract_features = block if block_given?
@@ -126,7 +127,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     instance_eval code, file
   end
 
-  def initialize(directory = nil, extract_features = nil, train_model = nil, eval_model = nil, names = nil, factor_levels = nil)
+  def initialize(directory = nil, extract_features = nil, train_model = nil, eval_model = nil, post_process = nil, names = nil, factor_levels = nil)
     @directory = directory
     if @directory
       FileUtils.mkdir_p @directory unless File.exists?(@directory)
@@ -135,10 +136,18 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       @extract_features_file = File.join(@directory, "features")
       @train_model_file = File.join(@directory, "train_model")
       @eval_model_file = File.join(@directory, "eval_model")
+      @post_process_file = File.join(@directory, "post_process")
       @train_model_file_R = File.join(@directory, "train_model.R")
       @eval_model_file_R = File.join(@directory, "eval_model.R")
+      @post_process_file_R = File.join(@directory, "post_process.R")
       @names_file = File.join(@directory, "feature_names")
       @levels_file = File.join(@directory, "levels")
+      @options_file = File.join(@directory, "options.json")
+
+      if File.exists?(@options_file)
+        @model_options = JSON.parse(Open.read(@options_file))
+        IndiferentHash.setup(@model_options)
+      end
     end
 
     if extract_features.nil?
@@ -168,6 +177,17 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     else
       @eval_model = eval_model
     end
+
+    if post_process.nil?
+      if @post_process_file && File.exists?(@post_process_file)
+        @post_process = __load_method @post_process_file
+      elsif @post_process_file_R && File.exists?(@post_process_file_R)
+        @post_process = Open.read(@post_process_file_R)
+      end
+    else
+      @post_process = post_process
+    end
+
 
     if names.nil?
       if @names_file && File.exists?(@names_file)
@@ -240,8 +260,20 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       Open.write(@eval_model_file_R, eval_model)
     end
 
+    case 
+    when Proc === post_process
+      begin
+        Open.write(@post_process_file, post_process.source)
+      rescue
+      end
+    when String === post_process
+      Open.write(@post_process_file_R, post_process)
+    end
+
+
     Open.write(@levels_file, @factor_levels.to_yaml) if @factor_levels
     Open.write(@names_file, @names * "\n" + "\n") if @names
+    Open.write(@options_file, @model_options.to_json) if @model_options
   end
 
   def train
@@ -251,7 +283,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     when String === @train_model
       VectorModel.R_train(@model_file,  @features, @labels, train_model, @names, @factor_levels)
     end
-    save_models
+    save_models if @directory
   end
 
   def run(code)
@@ -299,38 +331,6 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     result
   end
 
-  #def cross_validation(folds = 10)
-  #  saved_features = @features
-  #  saved_labels = @labels
-  #  seq = (0..features.length - 1).to_a
-
-  #  chunk_size = features.length / folds
-
-  #  acc = []
-  #  folds.times do
-  #    seq = seq.shuffle
-  #    eval_chunk = seq[0..chunk_size]
-  #    train_chunk = seq[chunk_size.. -1]
-
-  #    eval_features = @features.values_at *eval_chunk
-  #    eval_labels = @labels.values_at *eval_chunk
-
-  #    @features = @features.values_at *train_chunk
-  #    @labels = @labels.values_at *train_chunk
-
-  #    train
-  #    predictions = eval_list eval_features, false
-
-  #    acc << predictions.zip(eval_labels).collect{|pred,lab| pred - lab < 0.5 ? 1 : 0}.inject(0){|acc,e| acc +=e} / chunk_size
-
-  #    @features = saved_features
-  #    @labels = saved_labels
-  #  end
-
-  #  acc
-  #end
-  #
-  
   def self.f1_metrics(test, predicted, good_label = nil)
     tp, tn, fp, fn, pr, re, f1 = [0, 0, 0, 0, nil, nil, nil]
 

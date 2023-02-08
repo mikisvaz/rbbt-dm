@@ -17,6 +17,17 @@ def load_model_and_tokenizer(task, checkpoint):
     tokenizer = load_tokenizer(task, checkpoint)
     return model, tokenizer
 
+def load_model_and_tokenizer_from_directory(directory):
+    import os
+    import json
+    options_file = os.path.join(directory, 'options.json')
+    f = open(options_file, "r")
+    options = json.load(f.read())
+    f.close()
+    task = options["task"]
+    checkpoint = options["checkpoint"]
+    return load_model_and_tokenizer(task, checkpoint)
+
 #{{{ SIMPLE EVALUATE
 
 def forward(model, features):
@@ -57,34 +68,34 @@ def train_model(model, tokenizer, training_args, tsv_file, class_weights=None):
     tokenized_dataset = tsv_dataset(tokenizer, tsv_file)
 
     if (not class_weights == None):
-      import torch
-      from torch import nn
+        import torch
+        from torch import nn
 
-      class WeightTrainer(Trainer):
-          def compute_loss(self, model, inputs, return_outputs=False):
-              labels = inputs.get("labels")
-              # forward pass
-              outputs = model(**inputs)
-              logits = outputs.get('logits')
-              # compute custom loss
-              loss_fct = nn.CrossEntropyLoss(weight=torch.tensor(class_weights).to(model.device))
-              loss = loss_fct(logits.view(-1, self.model.config.num_labels), labels.view(-1))
-              return (loss, outputs) if return_outputs else loss
+        class WeightTrainer(Trainer):
+            def compute_loss(self, model, inputs, return_outputs=False):
+                labels = inputs.get("labels")
+                # forward pass
+                outputs = model(**inputs)
+                logits = outputs.get('logits')
+                # compute custom loss
+                loss_fct = nn.CrossEntropyLoss(weight=torch.tensor(class_weights).to(model.device))
+                loss = loss_fct(logits.view(-1, self.model.config.num_labels), labels.view(-1))
+                return (loss, outputs) if return_outputs else loss
 
-      trainer = WeightTrainer(
-              model,
-              training_args,
-              train_dataset = tokenized_dataset["train"],
-              tokenizer = tokenizer
-              )
+        trainer = WeightTrainer(
+                model,
+                training_args,
+                train_dataset = tokenized_dataset["train"],
+                tokenizer = tokenizer
+                )
     else:
 
-      trainer = Trainer(
-              model,
-              training_args,
-              train_dataset = tokenized_dataset["train"],
-              tokenizer = tokenizer
-              )
+        trainer = Trainer(
+                model,
+                training_args,
+                train_dataset = tokenized_dataset["train"],
+                tokenizer = tokenizer
+                )
 
     trainer.train()
 

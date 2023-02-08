@@ -3,6 +3,21 @@ require 'rbbt/vector/model/huggingface'
 
 class TestHuggingface < Test::Unit::TestCase
 
+  def test_options
+    TmpFile.with_file do |dir|
+      checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+      task = "SequenceClassification"
+
+      model = HuggingfaceModel.new task, checkpoint, dir, :class_labels => %w(bad good)
+      iii model.eval "This is dog"
+      iii model.eval "This is cat"
+      iii model.eval(["This is dog", "This is cat"])
+
+      model = VectorModel.new dir
+      iii model.eval(["This is dog", "This is cat"])
+    end
+  end
+
   def test_pipeline
     require 'rbbt/util/python'
     model = VectorModel.new
@@ -25,7 +40,7 @@ class TestHuggingface < Test::Unit::TestCase
 
       model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
 
-      model.class_labels = ["Bad", "Good"]
+      model.model_options[:class_labels] = ["Bad", "Good"]
 
       assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
     end
@@ -37,9 +52,8 @@ class TestHuggingface < Test::Unit::TestCase
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
       model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
-      model.class_labels = ["Bad", "Good"]
 
-      model.training_args.merge! :auto_find_batch_size => true
+      model.model_options[:class_labels] = %w(Bad Good)
 
       assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
 
@@ -50,6 +64,9 @@ class TestHuggingface < Test::Unit::TestCase
       model.train
 
       assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+
+      model = VectorModel.new dir
+      assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
     end
   end
 
@@ -57,7 +74,7 @@ class TestHuggingface < Test::Unit::TestCase
     checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
     model = HuggingfaceModel.new "SequenceClassification", checkpoint
-    model.class_labels = ["Bad", "Good"]
+    model.model_options[:class_labels] = ["Bad", "Good"]
 
     assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
 
@@ -75,7 +92,7 @@ class TestHuggingface < Test::Unit::TestCase
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
       model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
-      model.class_labels = ["Bad", "Good"]
+      model.model_options[:class_labels] = ["Bad", "Good"]
 
       assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
 
@@ -86,14 +103,19 @@ class TestHuggingface < Test::Unit::TestCase
       model.train
 
       model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
-      model.class_labels = ["Bad", "Good"]
 
       assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
 
-      model = HuggingfaceModel.new "SequenceClassification", model.model_file
-      model.class_labels = ["Bad", "Good"]
+      model_file = model.model_file
+
+      model = HuggingfaceModel.new "SequenceClassification", model_file
+      model.model_options[:class_labels] = ["Bad", "Good"]
 
       assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+
+      model = VectorModel.new dir
+
+      assert_equal "Good", model.eval("This is dog")
 
     end
   end
