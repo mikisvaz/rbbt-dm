@@ -28,8 +28,10 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
    vector=vector{
     model.rb
     model=model{
+     torch.rb
      huggingface.rb
-     huggingface.old.rb
+     python_lighting.rb
+
      random_forest.rb
      spaCy.rb
      svm.rb
@@ -44,6 +46,7 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
   rbbt_dm=rbbt_dm{
    __init__.py
    huggingface.py
+   transformer.py
   }
  }
  test=test {

@@ -1,10 +1,8 @@
-require 'rbbt/vector/model'
-require 'rbbt/util/python'
+require 'rbbt/vector/model/torch'
 
-RbbtPython.add_path Rbbt.python.find(:lib)
-RbbtPython.init_rbbt
+class HuggingfaceModel < TorchModel
 
-class HuggingfaceModel < VectorModel
+  attr_accessor :model
 
   def self.tsv_dataset(tsv_dataset_file, elements, labels = nil, class_labels = nil)
 
@@ -37,19 +35,17 @@ class HuggingfaceModel < VectorModel
   end
 
   def initialize(task, checkpoint, *args)
-    options = args.pop if Hash === args.last
-    options = Misc.add_defaults options, :task => task, :checkpoint => checkpoint
     super(*args)
-    @model_options ||= {}
-    @model_options.merge!(options)
+    @model_options = Misc.add_defaults @model_options, :task => task, :checkpoint => checkpoint
+
+    init_model do 
+      checkpoint = @model_file && File.directory?(@model_file) ? @model_file : @model_options[:checkpoint]
+      RbbtPython.call_method("rbbt_dm.huggingface", :load_model_and_tokenizer, @model_options[:task], checkpoint)
+    end
 
     eval_model do |directory,texts|
-      checkpoint = directory && File.directory?(directory) ? directory : @model_options[:checkpoint]
+      model, tokenizer = self.init
 
-      if @model.nil?
-        @model, @tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_model_and_tokenizer, @model_options[:task], checkpoint)
-      end
-      
       if Array === texts
 
         if @model_options.include?(:locate_tokens)
@@ -72,18 +68,17 @@ class HuggingfaceModel < VectorModel
         training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, @model_options[:training_args])
 
         begin
-          RbbtPython.call_method("rbbt_dm.huggingface", :predict_model, @model, @tokenizer, training_args_obj, dataset_file, locate_tokens)
+          RbbtPython.call_method("rbbt_dm.huggingface", :predict_model, model, tokenizer, training_args_obj, dataset_file, locate_tokens)
         ensure
           Open.rm_rf tmpdir if tmpdir
         end
       else
-        RbbtPython.call_method("rbbt_dm.huggingface", :eval_model, @model, @tokenizer, [texts], locate_tokens)
+        RbbtPython.call_method("rbbt_dm.huggingface", :eval_model, model, tokenizer, [texts], locate_tokens)
       end
     end
 
     train_model do |directory,texts,labels|
-      checkpoint = directory && File.directory?(directory) ? directory : @model_options[:checkpoint]
-      @model, @tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_model_and_tokenizer, @model_options[:task], checkpoint)
+      model, tokenizer = self.init
 
       if @directory
         tsv_file = File.join(@directory, 'dataset.tsv')
@@ -98,12 +93,12 @@ class HuggingfaceModel < VectorModel
       training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, @model_options[:training_args])
       dataset_file = HuggingfaceModel.tsv_dataset(tsv_file, texts, labels, @model_options[:class_labels])
 
-      RbbtPython.call_method("rbbt_dm.huggingface", :train_model, @model, @tokenizer, training_args_obj, dataset_file, @model_options[:class_weights])
+      RbbtPython.call_method("rbbt_dm.huggingface", :train_model, model, tokenizer, training_args_obj, dataset_file, @model_options[:class_weights])
 
       Open.rm_rf tmpdir if tmpdir
 
-      @model.save_pretrained(directory) if directory
-      @tokenizer.save_pretrained(directory) if directory
+      model.save_pretrained(directory) if directory
+      tokenizer.save_pretrained(directory) if directory
     end
 
     post_process do |result|
@@ -153,10 +148,10 @@ class HuggingfaceModel < VectorModel
                    Array === locate_tokens ? item_masks : item_masks.first
                  end
                else
-                 logits
+                 predictions
                end
 
-      single ? result.first : result
+      single && Array === result ? result.first : result
     end
 
 
@@ -166,7 +161,7 @@ class HuggingfaceModel < VectorModel
   def reset_model
     @model, @tokenizer = nil
     Open.rm_rf @model_file
+    init
   end
-
 end
 

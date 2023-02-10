@@ -1,12 +1,20 @@
 #{{{ LOAD MODEL
 
 def import_module_class(module, class_name):
-    exec(f"from {module} import {class_name}")
+    if (not module == None):
+        exec(f"from {module} import {class_name}")
     return eval(class_name)
 
 def load_model(task, checkpoint):
     class_name = 'AutoModelFor' + task
-    return import_module_class('transformers', class_name).from_pretrained(checkpoint)
+    try:
+        return import_module_class('transformers', class_name).from_pretrained(checkpoint)
+    except:
+        module, class_name = task.split(":")
+        if (task == None):
+            module, class_name = None, module
+        return util.import_module_class(module, class_name).from_pretrained(checkpoint)
+
 
 def load_tokenizer(task, checkpoint):
     class_name = 'AutoTokenizer'
@@ -17,16 +25,18 @@ def load_model_and_tokenizer(task, checkpoint):
     tokenizer = load_tokenizer(task, checkpoint)
     return model, tokenizer
 
-def load_model_and_tokenizer_from_directory(directory):
-    import os
-    import json
-    options_file = os.path.join(directory, 'options.json')
-    f = open(options_file, "r")
-    options = json.load(f.read())
-    f.close()
-    task = options["task"]
-    checkpoint = options["checkpoint"]
-    return load_model_and_tokenizer(task, checkpoint)
+# Not used
+
+#def load_model_and_tokenizer_from_directory(directory):
+#    import os
+#    import json
+#    options_file = os.path.join(directory, 'options.json')
+#    f = open(options_file, "r")
+#    options = json.load(f.read())
+#    f.close()
+#    task = options["task"]
+#    checkpoint = options["checkpoint"]
+#    return load_model_and_tokenizer(task, checkpoint)
 
 #{{{ SIMPLE EVALUATE
 
@@ -53,14 +63,22 @@ def load_tsv(tsv_file):
 
 def tsv_dataset(tokenizer, tsv_file):
     dataset = load_tsv(tsv_file)
-    tokenized_dataset = dataset.map(lambda example: tokenizer(example["text"], truncation=True, max_length=512) , batched=True)
+    tokenized_dataset = dataset.map(lambda example: tokenizer(example["text"], truncation=True) , batched=True)
+    return tokenized_dataset
+
+def load_json(json_file):
+    from datasets import load_dataset
+    return load_dataset('json', data_files=[json_file])
+
+def json_dataset(tokenizer, json_file):
+    dataset = load_json(json_file)
+    tokenized_dataset = dataset.map(lambda example: tokenizer(example["text"], truncation=True) , batched=True)
     return tokenized_dataset
 
 def training_args(*args, **kwargs):
     from transformers import TrainingArguments
     training_args = TrainingArguments(*args, **kwargs)
     return training_args
-
 
 def train_model(model, tokenizer, training_args, tsv_file, class_weights=None):
     from transformers import Trainer
@@ -142,5 +160,4 @@ def predict_model(model, tokenizer, training_args, tsv_file, locate_tokens = Non
         return dict(result=result, token_positions=token_positions)
     else:
         return result
-
 

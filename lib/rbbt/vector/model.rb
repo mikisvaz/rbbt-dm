@@ -2,13 +2,18 @@ require 'rbbt/util/R'
 require 'rbbt/vector/model/util'
 
 class VectorModel
-  attr_accessor :directory, :model_file, :extract_features, :train_model, :eval_model, :post_process, :balance
+  attr_accessor :directory, :model_file, :extract_features, :init_model, :train_model, :eval_model, :post_process, :balance
   attr_accessor :features, :names, :labels, :factor_levels
-  attr_accessor :model_options
+  attr_accessor :model, :model_options
 
   def extract_features(&block)
     @extract_features = block if block_given?
     @extract_features
+  end
+
+  def init_model(&block)
+    @init_model = block if block_given?
+    @init_model
   end
 
   def train_model(&block)
@@ -19,6 +24,10 @@ class VectorModel
   def eval_model(&block)
     @eval_model = block if block_given?
     @eval_model
+  end
+
+  def init
+    @model ||= self.instance_exec &@init_model
   end
 
   def post_process(&block)
@@ -127,22 +136,30 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     instance_eval code, file
   end
 
-  def initialize(directory = nil, extract_features = nil, train_model = nil, eval_model = nil, post_process = nil, names = nil, factor_levels = nil)
+  def initialize(directory = nil, extract_features = nil, init_model = nil, train_model = nil, eval_model = nil, post_process = nil, names = nil, factor_levels = nil, model_options: {})
     @directory = directory
+    @model_options = model_options
+
     if @directory
       FileUtils.mkdir_p @directory unless File.exists?(@directory)
 
-      @model_file = File.join(@directory, "model")
+      @model_file            = File.join(@directory, "model")
+
       @extract_features_file = File.join(@directory, "features")
-      @train_model_file = File.join(@directory, "train_model")
-      @eval_model_file = File.join(@directory, "eval_model")
-      @post_process_file = File.join(@directory, "post_process")
-      @train_model_file_R = File.join(@directory, "train_model.R")
-      @eval_model_file_R = File.join(@directory, "eval_model.R")
-      @post_process_file_R = File.join(@directory, "post_process.R")
-      @names_file = File.join(@directory, "feature_names")
-      @levels_file = File.join(@directory, "levels")
-      @options_file = File.join(@directory, "options.json")
+      @init_model_file       = File.join(@directory, "init_model")
+
+      @train_model_file      = File.join(@directory, "train_model")
+      @train_model_file_R    = File.join(@directory, "train_model.R")
+
+      @eval_model_file       = File.join(@directory, "eval_model")
+      @eval_model_file_R     = File.join(@directory, "eval_model.R")
+
+      @post_process_file     = File.join(@directory, "post_process")
+      @post_process_file_R   = File.join(@directory, "post_process.R")
+
+      @names_file            = File.join(@directory, "feature_names")
+      @levels_file           = File.join(@directory, "levels")
+      @options_file          = File.join(@directory, "options.json")
 
       if File.exists?(@options_file)
         @model_options = JSON.parse(Open.read(@options_file))
@@ -156,6 +173,14 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       end
     else
       @extract_features = extract_features 
+    end
+
+    if init_model.nil?
+      if @init_model_file && File.exists?(@init_model_file)
+        @init_model = __load_method @init_model_file
+      end
+    else
+      @init_model = init_model 
     end
 
     if train_model.nil?
@@ -249,6 +274,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     Open.write(@extract_features_file, @extract_features.source) if @extract_features
+    Open.write(@init_model_file, @init_model.source) if @init_model
 
     case 
     when Proc === eval_model
