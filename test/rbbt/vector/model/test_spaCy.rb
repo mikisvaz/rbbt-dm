@@ -100,7 +100,7 @@ class TestSpaCyModel < Test::Unit::TestCase
       )
 
 
-      Rbbt::Config.set 'gpu_id', nil, :spacy
+      Rbbt::Config.set 'gpu_id', 0, :spacy
       require 'rbbt/tsv/csv'
       url = "https://raw.githubusercontent.com/hanzhang0420/Women-Clothing-E-commerce/master/Womens%20Clothing%20E-Commerce%20Reviews.csv"
       tsv = TSV.csv(Open.open(url))

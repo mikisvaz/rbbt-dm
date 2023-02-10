@@ -311,9 +311,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
       case 
       when Proc === @train_model
-        self.instance_exec(@model_file, @features, @labels, @names, @factor_levels, &@train_model)
+        self.instance_exec(@features, @labels, @names, @factor_levels, &@train_model)
       when String === @train_model
-        VectorModel.R_train(@model_file,  @features, @labels, train_model, @names, @factor_levels)
+        VectorModel.R_train(@model_file, @features, @labels, train_model, @names, @factor_levels)
       end
     ensure
       if @balance
@@ -334,7 +334,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
     result = case 
              when Proc === @eval_model
-               self.instance_exec(@model_file, features, false, nil, @names, @factor_levels, &@eval_model)
+               self.instance_exec(features, false, nil, @names, @factor_levels, &@eval_model)
              when String === @eval_model
                VectorModel.R_eval(@model_file, features, false, eval_model, @names, @factor_levels)
              else
@@ -360,7 +360,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
     result = case 
              when Proc === eval_model
-               self.instance_exec(@model_file, features, true, nil, @names, @factor_levels, &@eval_model)
+               self.instance_exec(features, true, nil, @names, @factor_levels, &@eval_model)
              when String === eval_model
                VectorModel.R_eval(@model_file, features, true, eval_model, @names, @factor_levels)
              end

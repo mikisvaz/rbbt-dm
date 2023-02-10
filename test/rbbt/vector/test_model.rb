@@ -26,7 +26,7 @@ class TestVectorModel < Test::Unit::TestCase
         element.split(";")
       }
 
-      model.train_model = Proc.new{|model_file,features,labels|
+      model.train_model = Proc.new{|features,labels|
         TmpFile.with_file do |feature_file|
           Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
           Open.write(feature_file + '.class', labels * "\n")
@@ -36,23 +36,23 @@ labels = scan("#{ feature_file }.class", what=numeric());
 features = cbind(features, class = labels);
 rbbt.require('e1071')
 model = svm(class ~ ., data = features) 
-save(model, file="#{ model_file }");
+save(model, file="#{ @model_file }");
           EOF
         end
       }
 
-      model.eval_model = Proc.new{|model_file,features|
+      model.eval_model = Proc.new{|features|
         TmpFile.with_file do |feature_file|
           TmpFile.with_file do |results|
             Open.write(feature_file, features * "\t")
-            puts R.run(<<-EOF
+            R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 library(e1071)
-load(file="#{ model_file }")
+load(file="#{ @model_file }")
 label = predict(model, features);
 cat(label, file="#{results}");
             EOF
-            ).read
+
             Open.read(results)
           end
         end
@@ -96,7 +96,7 @@ cat(label, file="#{results}");
         end
       }
 
-      model.train_model = Proc.new{|model_file,features,labels|
+      model.train_model = Proc.new{|features,labels|
         TmpFile.with_file do |feature_file|
           Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
           Open.write(feature_file + '.class', labels * "\n")
@@ -106,23 +106,23 @@ labels = scan("#{ feature_file }.class", what=numeric());
 features = cbind(features, class = labels);
 rbbt.require('e1071')
 model = svm(class ~ ., data = features) 
-save(model, file="#{ model_file }");
+save(model, file="#{ @model_file }");
           EOF
         end
       }
 
-      model.eval_model = Proc.new{|model_file,features|
+      model.eval_model = Proc.new{|features|
         TmpFile.with_file do |feature_file|
           TmpFile.with_file do |results|
             Open.write(feature_file, features * "\t")
-            puts R.run(<<-EOF
+            R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 library(e1071)
-load(file="#{ model_file }")
+load(file="#{ @model_file }")
 label = predict(model, features);
 cat(label, file="#{results}");
             EOF
-            ).read
+             
             Open.read(results)
           end
         end
@@ -164,7 +164,7 @@ cat(label, file="#{results}");
         element.split(";")
       }
 
-      model.train_model = Proc.new{|model_file,features,labels|
+      model.train_model = Proc.new{|features,labels|
         TmpFile.with_file do |feature_file|
           Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
           Open.write(feature_file + '.class', labels * "\n")
@@ -174,23 +174,23 @@ labels = scan("#{ feature_file }.class", what=numeric());
 features = cbind(features, class = labels);
 rbbt.require('e1071')
 model = svm(class ~ ., data = features) 
-save(model, file="#{ model_file }");
+save(model, file="#{ @model_file }");
           EOF
         end
       }
 
-      model.eval_model = Proc.new{|model_file,features|
+      model.eval_model = Proc.new{|features|
         TmpFile.with_file do |feature_file|
           TmpFile.with_file do |results|
             Open.write(feature_file, features * "\t")
-            puts R.run(<<-EOF
+            R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 library(e1071)
-load(file="#{ model_file }")
+load(file="#{ @model_file }")
 label = predict(model, features);
 cat(label, file="#{results}");
             EOF
-            ).read
+
             Open.read(results)
           end
         end
@@ -236,7 +236,7 @@ cat(label, file="#{results}");
         end
       }
 
-      model.train_model = Proc.new{|model_file,features,labels|
+      model.train_model = Proc.new{|features,labels|
         TmpFile.with_file do |feature_file|
           Open.write(feature_file, features.collect{|feats| feats * "\t"} * "\n")
           Open.write(feature_file + '.class', labels * "\n")
@@ -246,23 +246,23 @@ labels = scan("#{ feature_file }.class", what=numeric());
 features = cbind(features, label = labels);
 rbbt.require('e1071')
 model = svm(label ~ ., data = features) 
-save(model, file="#{ model_file }");
+save(model, file="#{ @model_file }");
           EOF
         end
       }
 
-      model.eval_model = Proc.new{|model_file,features|
+      model.eval_model = Proc.new{|features|
         TmpFile.with_file do |feature_file|
           TmpFile.with_file do |results|
             Open.write(feature_file, features * "\t")
-            puts R.run(<<-EOF
+            R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 library(e1071)
-load(file="#{ model_file }")
+load(file="#{ @model_file }")
 label = predict(model, features);
 cat(label, file="#{results}");
             EOF
-            ).read
+
             Open.read(results)
           end
         end
@@ -282,7 +282,6 @@ cat(label, file="#{results}");
         model.add features, label
       end
 
-      iii model.eval("1;1;1")
       assert model.eval("1;1;1").to_f > 0.5
       assert model.eval("0;0;0").to_f < 0.5
     end
@@ -515,7 +514,7 @@ label = predict(model, features);
     TmpFile.with_file do |dir|
       model = VectorModel.new dir
 
-      model.eval_model do |file, elements|
+      model.eval_model do |elements|
         elements = [elements] unless Array === elements
         RbbtPython.binding_run  do
           pyimport :torch

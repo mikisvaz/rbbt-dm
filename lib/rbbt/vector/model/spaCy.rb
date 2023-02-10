@@ -28,12 +28,12 @@ class SpaCyModel < VectorModel
 
     super(dir)
 
-    @train_model = Proc.new do |file, features, labels|
+    @train_model = Proc.new do |features, labels|
       texts = features
       docs = []
       unique_labels = labels.uniq
-      tmpconfig = File.join(file, 'config')
-      tmptrain = File.join(file, 'train.spacy')
+      tmpconfig = File.join(@model_file, 'config')
+      tmptrain = File.join(@model_file, 'train.spacy')
       SpaCy.config(@config, tmpconfig)
 
       bar = bar(features.length, "Training documents into spacy format")
@@ -54,12 +54,14 @@ class SpaCyModel < VectorModel
       end
 
       gpu = Rbbt::Config.get('gpu_id', :spacy, :spacy_train, :default => 0)
-      CMD.cmd_log(:spacy, "train #{tmpconfig} --output #{file} --paths.train #{tmptrain} --paths.dev #{tmptrain}",  "--gpu-id" => gpu)
+      CMD.cmd_log(:spacy, "train #{tmpconfig} --output #{@model_file} --paths.train #{tmptrain} --paths.dev #{tmptrain}",  "--gpu-id" => gpu)
     end
  
-    @eval_model = Proc.new do |file, features,list|
+    @eval_model = Proc.new do |features,list|
       texts = features
       texts = [texts] unless list
+
+      model_file = @model_file
 
       docs = []
       bar = bar(features.length, "Evaluating model")
@@ -67,7 +69,7 @@ class SpaCyModel < VectorModel
         gpu = Rbbt::Config.get('gpu_id', :spacy, :spacy_train, :default => 0)
         gpu = gpu.to_i if gpu && gpu != ""
         spacy.require_gpu(gpu) if gpu
-        nlp = spacy.load("#{file}/model-best")
+        nlp = spacy.load("#{model_file}/model-best")
 
         docs = nlp.pipe(texts)
         RbbtPython.collect docs, :bar => bar do |d|
