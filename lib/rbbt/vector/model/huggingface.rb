@@ -39,11 +39,11 @@ class HuggingfaceModel < TorchModel
     @model_options = Misc.add_defaults @model_options, :task => task, :checkpoint => checkpoint
 
     init_model do 
-      checkpoint = @model_file && File.directory?(@model_file) ? @model_file : @model_options[:checkpoint]
+      checkpoint = @model_path && File.directory?(@model_path) ? @model_path : @model_options[:checkpoint]
       RbbtPython.call_method("rbbt_dm.huggingface", :load_model_and_tokenizer, @model_options[:task], checkpoint)
     end
 
-    eval_model do |directory,texts|
+    eval_model do |texts|
       model, tokenizer = self.init
 
       if Array === texts
@@ -51,7 +51,7 @@ class HuggingfaceModel < TorchModel
         if @model_options.include?(:locate_tokens)
           locate_tokens = @model_options[:locate_tokens]
         elsif @model_options[:task] == "MaskedLM"
-          @model_options[:locate_tokens] = locate_tokens = @tokenizer.special_tokens_map["mask_token"] 
+          @model_options[:locate_tokens] = locate_tokens = tokenizer.special_tokens_map["mask_token"] 
         end
 
         if @directory
@@ -77,7 +77,7 @@ class HuggingfaceModel < TorchModel
       end
     end
 
-    train_model do |directory,texts,labels|
+    train_model do |texts,labels|
       model, tokenizer = self.init
 
       if @directory
@@ -97,11 +97,13 @@ class HuggingfaceModel < TorchModel
 
       Open.rm_rf tmpdir if tmpdir
 
-      model.save_pretrained(directory) if directory
-      tokenizer.save_pretrained(directory) if directory
+      model.save_pretrained(@model_path) if @model_path
+      tokenizer.save_pretrained(@model_path) if @model_path
     end
 
     post_process do |result|
+      model, tokenizer = self.init
+
       if result.respond_to?(:predictions)
         single = false
         predictions = result.predictions
@@ -143,7 +145,7 @@ class HuggingfaceModel < TorchModel
                        best_token
                      end
 
-                     best.collect{|b| @tokenizer.decode(b) } * "|"
+                     best.collect{|b| tokenizer.decode(b) } * "|"
                    end
                    Array === locate_tokens ? item_masks : item_masks.first
                  end
@@ -155,12 +157,12 @@ class HuggingfaceModel < TorchModel
     end
 
 
-    save_models if @directory
+    save_models if @model_path
   end
 
   def reset_model
     @model, @tokenizer = nil
-    Open.rm_rf @model_file
+    Open.rm_rf @model_path
     init
   end
 end

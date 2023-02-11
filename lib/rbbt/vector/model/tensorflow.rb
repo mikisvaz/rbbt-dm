@@ -33,15 +33,15 @@ class TensorFlowModel < VectorModel
       @graph ||= keras_graph
       @graph.compile(**@compile_options)
       @graph.fit(features, labels, :epochs => @epochs, :verbose => true)
-      @graph.save(@model_file)
+      @graph.save(@model_path)
     end
  
     @eval_model = Proc.new do |features|
       tensorflow do 
         features = tensorflow.convert_to_tensor(features)
       end
-      model_file = @model_file
-      graph = @graph ||= keras.models.load_model(model_file)
+      model_path = @model_path
+      graph = @graph ||= keras.models.load_model(model_path)
       keras do
         indices = graph.predict(features, :verbose => false).tolist()
         labels = indices.collect{|p| p.length > 1 ? p.index(p.max): p.first }

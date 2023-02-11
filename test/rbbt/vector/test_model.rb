@@ -36,7 +36,7 @@ labels = scan("#{ feature_file }.class", what=numeric());
 features = cbind(features, class = labels);
 rbbt.require('e1071')
 model = svm(class ~ ., data = features) 
-save(model, file="#{ @model_file }");
+save(model, file="#{ @model_path }");
           EOF
         end
       }
@@ -48,7 +48,7 @@ save(model, file="#{ @model_file }");
             R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 library(e1071)
-load(file="#{ @model_file }")
+load(file="#{ @model_path }")
 label = predict(model, features);
 cat(label, file="#{results}");
             EOF
@@ -106,7 +106,7 @@ labels = scan("#{ feature_file }.class", what=numeric());
 features = cbind(features, class = labels);
 rbbt.require('e1071')
 model = svm(class ~ ., data = features) 
-save(model, file="#{ @model_file }");
+save(model, file="#{ @model_path }");
           EOF
         end
       }
@@ -118,7 +118,7 @@ save(model, file="#{ @model_file }");
             R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 library(e1071)
-load(file="#{ @model_file }")
+load(file="#{ @model_path }")
 label = predict(model, features);
 cat(label, file="#{results}");
             EOF
@@ -174,7 +174,7 @@ labels = scan("#{ feature_file }.class", what=numeric());
 features = cbind(features, class = labels);
 rbbt.require('e1071')
 model = svm(class ~ ., data = features) 
-save(model, file="#{ @model_file }");
+save(model, file="#{ @model_path }");
           EOF
         end
       }
@@ -186,7 +186,7 @@ save(model, file="#{ @model_file }");
             R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 library(e1071)
-load(file="#{ @model_file }")
+load(file="#{ @model_path }")
 label = predict(model, features);
 cat(label, file="#{results}");
             EOF
@@ -246,7 +246,7 @@ labels = scan("#{ feature_file }.class", what=numeric());
 features = cbind(features, label = labels);
 rbbt.require('e1071')
 model = svm(label ~ ., data = features) 
-save(model, file="#{ @model_file }");
+save(model, file="#{ @model_path }");
           EOF
         end
       }
@@ -258,7 +258,7 @@ save(model, file="#{ @model_file }");
             R.run <<-EOF
 features = read.table("#{ feature_file }", sep ="\\t", stringsAsFactors=FALSE);
 library(e1071)
-load(file="#{ @model_file }")
+load(file="#{ @model_path }")
 label = predict(model, features);
 cat(label, file="#{results}");
             EOF

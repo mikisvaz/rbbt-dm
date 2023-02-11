@@ -27,7 +27,7 @@ label = predict(model, features);
   def importance
     TmpFile.with_file do |tmp|
       tsv = R.run <<-EOF
-load(file="#{model_file}");
+load(file="#{@model_path}");
 rbbt.tsv.write('#{tmp}', model$importance)
       EOF
       TSV.open(tmp)

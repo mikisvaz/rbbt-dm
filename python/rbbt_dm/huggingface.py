@@ -13,7 +13,7 @@ def load_model(task, checkpoint):
         module, class_name = task.split(":")
         if (task == None):
             module, class_name = None, module
-        return util.import_module_class(module, class_name).from_pretrained(checkpoint)
+        return import_module_class(module, class_name).from_pretrained(checkpoint)
 
 
 def load_tokenizer(task, checkpoint):
@@ -61,29 +61,38 @@ def load_tsv(tsv_file):
     from datasets import load_dataset
     return load_dataset('csv', data_files=[tsv_file], sep="\t")
 
-def tsv_dataset(tokenizer, tsv_file):
-    dataset = load_tsv(tsv_file)
-    tokenized_dataset = dataset.map(lambda example: tokenizer(example["text"], truncation=True) , batched=True)
-    return tokenized_dataset
-
 def load_json(json_file):
     from datasets import load_dataset
     return load_dataset('json', data_files=[json_file])
 
+def tokenize_dataset(tokenizer, dataset):
+    return dataset.map(lambda subset: subset if ("input_ids" in subset.keys()) else tokenizer(subset["text"], truncation=True)  , batched=True)
+
+def tsv_dataset(tokenizer, tsv_file):
+    dataset = load_tsv(tsv_file)
+    return tokenize_dataset(tokenizer, dataset)
+
 def json_dataset(tokenizer, json_file):
     dataset = load_json(json_file)
-    tokenized_dataset = dataset.map(lambda example: tokenizer(example["text"], truncation=True) , batched=True)
-    return tokenized_dataset
+    return tokenize_dataset(tokenizer, dataset)
 
 def training_args(*args, **kwargs):
     from transformers import TrainingArguments
     training_args = TrainingArguments(*args, **kwargs)
     return training_args
 
-def train_model(model, tokenizer, training_args, tsv_file, class_weights=None):
+def train_model(model, tokenizer, training_args, dataset, class_weights=None, **kwargs):
     from transformers import Trainer
 
-    tokenized_dataset = tsv_dataset(tokenizer, tsv_file)
+    if (isinstance(dataset, str)):
+        if (dataset.endswith('.json')):
+            tokenized_dataset = json_dataset(tokenizer, dataset)
+        else:
+            tokenized_dataset = tsv_dataset(tokenizer, dataset)
+    else:
+        tokenized_dataset = tokenize_dataset(tokenizer, dataset)
+
+    print(tokenized_dataset["train"])
 
     if (not class_weights == None):
         import torch
@@ -104,7 +113,8 @@ def train_model(model, tokenizer, training_args, tsv_file, class_weights=None):
                 model,
                 training_args,
                 train_dataset = tokenized_dataset["train"],
-                tokenizer = tokenizer
+                tokenizer = tokenizer,
+                **kwargs
                 )
     else:
 
@@ -112,7 +122,8 @@ def train_model(model, tokenizer, training_args, tsv_file, class_weights=None):
                 model,
                 training_args,
                 train_dataset = tokenized_dataset["train"],
-                tokenizer = tokenizer
+                tokenizer = tokenizer,
+                **kwargs
                 )
 
     trainer.train()
@@ -142,10 +153,16 @@ def find_tokens_in_input(dataset, token_ids):
     return position_rows
 
 
-def predict_model(model, tokenizer, training_args, tsv_file, locate_tokens = None):
+def predict_model(model, tokenizer, training_args, dataset, locate_tokens = None):
     from transformers import Trainer
 
-    tokenized_dataset = tsv_dataset(tokenizer, tsv_file)
+    if (isinstance(dataset, str)):
+        if (dataset.endswith('.json')):
+            tokenized_dataset = json_dataset(tokenizer, dataset)
+        else:
+            tokenized_dataset = tsv_dataset(tokenizer, dataset)
+    else:
+        tokenized_dataset = tokenize_dataset(tokenizer, dataset)
 
     trainer = Trainer(
             model,

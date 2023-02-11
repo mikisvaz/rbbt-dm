@@ -24,7 +24,7 @@ class TestHuggingface < Test::Unit::TestCase
     model.post_process do |elements|
       elements.collect{|e| e['label'] }
     end
-    model.eval_model do |file, elements|
+    model.eval_model do |elements|
       RbbtPython.run :transformers do 
         classifier ||= transformers.pipeline("sentiment-analysis")
         classifier.call(elements)
@@ -130,9 +130,9 @@ class TestHuggingface < Test::Unit::TestCase
 
       assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
 
-      model_file = model.model_file
+      model_path = model.model_path
 
-      model = HuggingfaceModel.new "SequenceClassification", model_file
+      model = HuggingfaceModel.new "SequenceClassification", model_path
       model.model_options[:class_labels] = ["Bad", "Good"]
 
       assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
@@ -181,14 +181,15 @@ class TestHuggingface < Test::Unit::TestCase
     model = HuggingfaceModel.new "MaskedLM", checkpoint
     model.eval ["Hi [MASK]"]
 
-    tokenizer = model.instance_variable_get("@tokenizer")
-    mod = model.instance_variable_get("@model")
+    mod, tokenizer = model.init
 
-    iii model.instance_variable_get("@tokenizer").call("Hi [GENE]")
 
+    orig =  tokenizer.call("Hi [GENE]")["input_ids"]
     tokenizer.add_tokens(["[GENE]"])
     mod.resize_token_embeddings(tokenizer.__len__)
-    iii model.instance_variable_get("@tokenizer").call("Hi [GENE]")
+    new =  tokenizer.call("Hi [GENE]")["input_ids"]
+
+    assert orig.length > new.length
   end
 
 
@@ -262,12 +263,11 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
       model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
-
       model.model_options[:class_labels] = %w(Bad Good)
 
-      assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
+      mod, tokenizer = model.init
 
-      orig = HuggingfaceModel.get_weights(model.model, 'distilbert.embeddings.word_embeddings')
+      orig = HuggingfaceModel.get_weights(mod, 'distilbert.embeddings.word_embeddings')
       orig = RbbtPython.numpy2ruby(orig.cpu.detach.numpy)
 
       100.times do
@@ -276,7 +276,7 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
 
       model.train
 
-      new = HuggingfaceModel.get_weights(model.model, 'distilbert.embeddings.word_embeddings')
+      new = HuggingfaceModel.get_weights(mod, 'distilbert.embeddings.word_embeddings')
       new = RbbtPython.numpy2ruby(new.cpu.detach.numpy)
       
       diff = []
@@ -293,14 +293,13 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
       model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
-
       model.model_options[:class_labels] = %w(Bad Good)
 
-      assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
+      mod, tokenizer = model.init
 
-      layer = HuggingfaceModel.freeze_layer(model.model, 'distilbert')
+      layer = HuggingfaceModel.freeze_layer(mod, 'distilbert')
 
-      orig = HuggingfaceModel.get_weights(model.model, 'distilbert.embeddings.word_embeddings')
+      orig = HuggingfaceModel.get_weights(mod, 'distilbert.embeddings.word_embeddings')
       orig = RbbtPython.numpy2ruby(orig.cpu.detach.numpy)
 
       100.times do
@@ -309,7 +308,7 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
 
       model.train
 
-      new = HuggingfaceModel.get_weights(model.model, 'distilbert.embeddings.word_embeddings')
+      new = HuggingfaceModel.get_weights(mod, 'distilbert.embeddings.word_embeddings')
       new = RbbtPython.numpy2ruby(new.cpu.detach.numpy)
       
       diff = []

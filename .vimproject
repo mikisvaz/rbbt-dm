@@ -47,7 +47,9 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
    __init__.py
    huggingface.py
    transformer.py
+   language_model.py
   }
+  test.py
  }
  test=test {
   test_helper.rb
