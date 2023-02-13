@@ -118,7 +118,7 @@ module TSV
 
     field_pos = fields.collect{|f| self.fields.index f}.compact
     persistence_path = self.respond_to?(:persistence_path)? self.persistence_path : nil
-    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts", :other => {:background => background, :rename => rename, :persistence_path => persistence_path}) do 
+    Persist.persist(filename, :yaml, :fields => fields, :persist => persistence, :prefix => "Hyp.Geo.Counts", :other => {:fields => fields, :background => background, :rename => rename, :persistence_path => persistence_path}) do 
       data ||= {}
 
       with_unnamed do
@@ -151,6 +151,7 @@ module TSV
         end
 
       end
+
 
       if rename
         Log.debug("Using renames during annotation counts")
