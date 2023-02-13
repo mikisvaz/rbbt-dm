@@ -11,10 +11,10 @@ class TestHuggingface < Test::Unit::TestCase
       model = HuggingfaceModel.new task, checkpoint, dir, :class_labels => %w(bad good)
       iii model.eval "This is dog"
       iii model.eval "This is cat"
-      iii model.eval(["This is dog", "This is cat"])
+      iii model.eval_list(["This is dog", "This is cat"])
 
       model = VectorModel.new dir
-      iii model.eval(["This is dog", "This is cat"])
+      iii model.eval_list(["This is dog", "This is cat"])
     end
   end
 
@@ -171,7 +171,7 @@ class TestHuggingface < Test::Unit::TestCase
       end
 
       Misc.benchmark 1000 do
-        model.eval(["This is good", "This is terrible", "This is dog", "This is cat", "Very different stuff", "Dog is bad", "Cat is good"])
+        model.eval_list(["This is good", "This is terrible", "This is dog", "This is cat", "Very different stuff", "Dog is bad", "Cat is good"])
       end
     end
   end
