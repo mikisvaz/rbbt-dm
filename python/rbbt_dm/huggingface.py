@@ -5,7 +5,7 @@ def import_module_class(module, class_name):
         exec(f"from {module} import {class_name}")
     return eval(class_name)
 
-def load_model(task, checkpoint):
+def load_model(task, checkpoint, **kwargs):
     class_name = 'AutoModelFor' + task
     try:
         return import_module_class('transformers', class_name).from_pretrained(checkpoint)
@@ -13,12 +13,12 @@ def load_model(task, checkpoint):
         module, class_name = task.split(":")
         if (task == None):
             module, class_name = None, module
-        return import_module_class(module, class_name).from_pretrained(checkpoint)
+        return import_module_class(module, class_name).from_pretrained(checkpoint, **kwargs)
 
 
-def load_tokenizer(task, checkpoint):
+def load_tokenizer(task, checkpoint, **kwargs):
     class_name = 'AutoTokenizer'
-    return import_module_class('transformers', class_name).from_pretrained(checkpoint)
+    return import_module_class('transformers', class_name).from_pretrained(checkpoint, **kwargs)
 
 def load_model_and_tokenizer(task, checkpoint):
     model = load_model(task, checkpoint)
@@ -66,7 +66,7 @@ def load_json(json_file):
     return load_dataset('json', data_files=[json_file])
 
 def tokenize_dataset(tokenizer, dataset):
-    return dataset.map(lambda subset: subset if ("input_ids" in subset.keys()) else tokenizer(subset["text"], truncation=True)  , batched=True)
+    return dataset.map(lambda subset: subset if ("input_ids" in subset.keys()) else tokenizer(subset["text"]), batched=True)
 
 def tsv_dataset(tokenizer, tsv_file):
     dataset = load_tsv(tsv_file)

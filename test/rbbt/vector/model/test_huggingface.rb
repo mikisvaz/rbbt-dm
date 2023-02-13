@@ -33,16 +33,25 @@ class TestHuggingface < Test::Unit::TestCase
 
     assert_equal ["POSITIVE"], model.eval("I've been waiting for a HuggingFace course my whole life.")
   end
+  
+  def test_tokenizer_size
+    checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+    tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_tokenizer, 
+                                       "MaskedLM", checkpoint, :max_length => 5, :model_max_length => 5)
+    assert_equal 5, tokenizer.call("This is a sentence that has several words", truncation: true, max_length: 5)["input_ids"].__len__
+    assert_equal 5, tokenizer.call("This is a sentence that has several words", truncation: true)["input_ids"].__len__
+  end
 
   def test_sst_eval
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
-      model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
+      model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir, :tokenizer_args => {:max_length => 16}
 
       model.model_options[:class_labels] = ["Bad", "Good"]
 
-      assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
+      assert_equal "Bad", model.eval("This is dog")
+      assert_equal ["Bad", "Good"], model.eval_list(["This is dog", "This is cat"])
     end
   end
 
@@ -55,7 +64,7 @@ class TestHuggingface < Test::Unit::TestCase
 
       model.model_options[:class_labels] = %w(Bad Good)
 
-      assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
+      assert_equal ["Bad", "Good"], model.eval_list(["This is dog", "This is cat"])
 
       100.times do
         model.add "Dog is good", "Good"
@@ -63,10 +72,10 @@ class TestHuggingface < Test::Unit::TestCase
 
       model.train
 
-      assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+      assert_equal ["Good", "Good"], model.eval_list(["This is dog", "This is cat"])
 
       model = VectorModel.new dir
-      assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+      assert_equal ["Good", "Good"], model.eval_list(["This is dog", "This is cat"])
     end
   end
 
@@ -78,7 +87,7 @@ class TestHuggingface < Test::Unit::TestCase
 
       model.model_options[:class_labels] = %w(Bad Good)
 
-      assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
+      assert_equal ["Bad", "Good"], model.eval_list(["This is dog", "This is cat"])
 
       100.times do
         model.add "Dog is good", "Good"
@@ -86,10 +95,10 @@ class TestHuggingface < Test::Unit::TestCase
 
       model.train
 
-      assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+      assert_equal ["Good", "Good"], model.eval_list(["This is dog", "This is cat"])
 
       model = VectorModel.new dir
-      assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+      assert_equal ["Good", "Good"], model.eval_list(["This is dog", "This is cat"])
     end
   end
 
@@ -100,7 +109,7 @@ class TestHuggingface < Test::Unit::TestCase
     model = HuggingfaceModel.new "SequenceClassification", checkpoint
     model.model_options[:class_labels] = ["Bad", "Good"]
 
-    assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
+    assert_equal ["Bad", "Good"], model.eval_list(["This is dog", "This is cat"])
 
     100.times do
       model.add "Dog is good", 1
@@ -108,7 +117,7 @@ class TestHuggingface < Test::Unit::TestCase
 
     model.train
 
-    assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+    assert_equal ["Good", "Good"], model.eval_list(["This is dog", "This is cat"])
   end
 
   def test_sst_train_save_and_load
@@ -118,7 +127,7 @@ class TestHuggingface < Test::Unit::TestCase
       model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
       model.model_options[:class_labels] = ["Bad", "Good"]
 
-      assert_equal ["Bad", "Good"], model.eval(["This is dog", "This is cat"])
+      assert_equal ["Bad", "Good"], model.eval_list(["This is dog", "This is cat"])
 
       100.times do
         model.add "Dog is good", "Good"
@@ -128,18 +137,18 @@ class TestHuggingface < Test::Unit::TestCase
 
       model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
 
-      assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+      assert_equal ["Good", "Good"], model.eval_list(["This is dog", "This is cat"])
 
       model_path = model.model_path
 
       model = HuggingfaceModel.new "SequenceClassification", model_path
       model.model_options[:class_labels] = ["Bad", "Good"]
 
-      assert_equal ["Good", "Good"], model.eval(["This is dog", "This is cat"])
+      assert_equal ["Good", "Good"], model.eval_list(["This is dog", "This is cat"])
 
       model = VectorModel.new dir
 
-      assert_equal "Good", model.eval("This is dog")
+      assert_equal "Good", model.eval_list("This is dog")
 
     end
   end
@@ -150,7 +159,7 @@ class TestHuggingface < Test::Unit::TestCase
 
       model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
 
-      model.eval "This is dog"
+      assert_equal 0, model.eval("This is dog")
 
       100.times do
         model.add "Dog is good", 1
@@ -171,7 +180,7 @@ class TestHuggingface < Test::Unit::TestCase
     checkpoint = "bert-base-uncased"
 
     model = HuggingfaceModel.new "MaskedLM", checkpoint
-    assert_equal 3, model.eval(["Paris is the [MASK] of the France.", "The [MASK] worked very hard all the time.", "The [MASK] arrested the dangerous [MASK]."]).
+    assert_equal 3, model.eval_list(["Paris is the [MASK] of the France.", "The [MASK] worked very hard all the time.", "The [MASK] arrested the dangerous [MASK]."]).
       reject{|v| v.empty?}.length
   end
 
@@ -179,10 +188,8 @@ class TestHuggingface < Test::Unit::TestCase
     checkpoint = "bert-base-uncased"
 
     model = HuggingfaceModel.new "MaskedLM", checkpoint
-    model.eval ["Hi [MASK]"]
 
     mod, tokenizer = model.init
-
 
     orig =  tokenizer.call("Hi [GENE]")["input_ids"]
     tokenizer.add_tokens(["[GENE]"])
@@ -249,12 +256,16 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
       biomedical_roberta = "PlanTL-GOB-ES/bsc-bio-ehr-es-cantemist"
       model = HuggingfaceModel.new "mypkg.mymodel:RobertaForTokenClassification_NER", biomedical_roberta
 
-      model.post_process do |result|
-        RbbtPython.numpy2ruby result.predictions
+      model.post_process do |result,is_list|
+        if is_list
+          RbbtPython.numpy2ruby result.predictions
+        else
+          result["logits"][0]
+        end
       end
 
       texto = "El paciente tiene un cáncer del pulmon"
-      iii model.eval [texto]
+      assert model.eval(texto)[5][1] > 0
     end
   end
 
@@ -320,5 +331,54 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
     end
   end
 
+  def test_sst_save_word_embeddings
+    TmpFile.with_file do |dir|
+      checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+
+      model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir
+      model.model_options[:class_labels] = %w(Bad Good)
+
+      mod, tokenizer = model.init
+
+      100.times do
+        model.add "Dog is good", "Good"
+      end
+
+      model.train
+
+      orig = RbbtPython.numpy2ruby(
+        HuggingfaceModel.get_weights(mod, 'distilbert.embeddings.word_embeddings').cpu.detach.numpy)
+
+      model = HuggingfaceModel.new "MaskedLM", checkpoint, dir
+
+      mod, tokenizer = model.init
+
+      new = RbbtPython.numpy2ruby(
+        HuggingfaceModel.get_weights(mod, 'distilbert.embeddings.word_embeddings').cpu.detach.numpy)
+      
+      
+      diff = []
+      new.each_with_index do |row,i|
+        diff << i if row != orig[i]
+      end
+
+      assert diff.length == 0
+
+      model = HuggingfaceModel.new "MaskedLM", checkpoint
+
+      mod, tokenizer = model.init
+
+      new = RbbtPython.numpy2ruby(
+        HuggingfaceModel.get_weights(mod, 'distilbert.embeddings.word_embeddings').cpu.detach.numpy)
+      
+      
+      diff = []
+      new.each_with_index do |row,i|
+        diff << i if row != orig[i]
+      end
+
+      assert diff.length > 0 
+    end
+  end
 end
 

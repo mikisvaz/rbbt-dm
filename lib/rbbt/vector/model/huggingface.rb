@@ -2,8 +2,6 @@ require 'rbbt/vector/model/torch'
 
 class HuggingfaceModel < TorchModel
 
-  attr_accessor :model
-
   def self.tsv_dataset(tsv_dataset_file, elements, labels = nil, class_labels = nil)
 
     if labels
@@ -34,19 +32,25 @@ class HuggingfaceModel < TorchModel
     tsv_dataset_file
   end
 
-  def initialize(task, checkpoint, *args)
-    super(*args)
+  def initialize(task, checkpoint, dir = nil, model_options = {})
+    super(dir, model_options)
     @model_options = Misc.add_defaults @model_options, :task => task, :checkpoint => checkpoint
 
     init_model do 
       checkpoint = @model_path && File.directory?(@model_path) ? @model_path : @model_options[:checkpoint]
-      RbbtPython.call_method("rbbt_dm.huggingface", :load_model_and_tokenizer, @model_options[:task], checkpoint)
+      model = RbbtPython.call_method("rbbt_dm.huggingface", :load_model, 
+                                     @model_options[:task], checkpoint, **(model_options[:model_args] || {}))
+      tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_tokenizer, 
+                                         @model_options[:task], checkpoint, **(model_options[:tokenizer_args] || {}))
+
+      [model, tokenizer]
     end
 
-    eval_model do |texts|
+    eval_model do |texts,is_list|
       model, tokenizer = self.init
 
-      if Array === texts
+      if is_list || @model_options[:task] == "MaskedLM"
+        texts = [texts] if ! is_list
 
         if @model_options.include?(:locate_tokens)
           locate_tokens = @model_options[:locate_tokens]
@@ -101,7 +105,7 @@ class HuggingfaceModel < TorchModel
       tokenizer.save_pretrained(@model_path) if @model_path
     end
 
-    post_process do |result|
+    post_process do |result,is_list|
       model, tokenizer = self.init
 
       if result.respond_to?(:predictions)
@@ -153,7 +157,7 @@ class HuggingfaceModel < TorchModel
                  predictions
                end
 
-      single && Array === result ? result.first : result
+      (! is_list || single) && Array === result ? result.first : result
     end
 
 

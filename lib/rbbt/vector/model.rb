@@ -136,7 +136,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     instance_eval code, file
   end
 
-  def initialize(directory = nil, extract_features = nil, init_model = nil, train_model = nil, eval_model = nil, post_process = nil, names = nil, factor_levels = nil, model_options: {})
+  def initialize(directory = nil, model_options = {})
     @directory = directory
     @model_options = model_options
 
@@ -162,11 +162,11 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       @options_file          = File.join(@directory, "options.json")
 
       if File.exists?(@options_file)
-        @model_options = JSON.parse(Open.read(@options_file))
+        @model_options = JSON.parse(Open.read(@options_file)).merge(@model_options || {})
         IndiferentHash.setup(@model_options)
       end
     end
-
+    
     if extract_features.nil?
       if @extract_features_file && File.exists?(@extract_features_file)
         @extract_features = __load_method @extract_features_file
@@ -341,7 +341,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
                raise "No @eval_model function or R script"
              end
 
-    result = self.instance_exec(result, &@post_process) if Proc === @post_process 
+    result = self.instance_exec(result, false, &@post_process) if Proc === @post_process 
 
     result
   end
@@ -365,7 +365,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
                VectorModel.R_eval(@model_path, features, true, eval_model, @names, @factor_levels)
              end
 
-    result = self.instance_exec(result, &@post_process) if Proc === @post_process 
+    result = self.instance_exec(result, true, &@post_process) if Proc === @post_process 
 
     result
   end

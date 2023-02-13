@@ -30,8 +30,9 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
     model=model{
      torch.rb
      huggingface.rb
-     python_lighting.rb
-
+     huggingface=huggingface{
+      masked_lm.rb
+     }
      random_forest.rb
      spaCy.rb
      svm.rb
@@ -46,16 +47,28 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
   rbbt_dm=rbbt_dm{
    __init__.py
    huggingface.py
-   transformer.py
    language_model.py
+   transformer.py
   }
   test.py
  }
  test=test {
   test_helper.rb
+  vector=rbbt/vector{
+   test_model.rb
+   model=model{
+    test_huggingface.rb
+    test_spaCy.rb
+    test_svm.rb
+    test_tensorflow.rb
+    test_torch.rb
+   }
+  }
   statistics=rbbt/statistics{
    test_fdr.rb
+   test_fisher.rb
    test_hypergeometric.rb
+   test_random_walk.rb
   }
  }
  share=share{

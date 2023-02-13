@@ -31,8 +31,7 @@ class TorchModel < VectorModel
     freeze(layer)
   end
 
-  def initialize(*args)
-    options = args.pop if Hash === args.last
-    super(*args, model_options: options)
+  def initialize(dir, model_options = {})
+    super(dir, model_options)
   end
 end
