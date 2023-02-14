@@ -22,6 +22,7 @@ class HuggingfaceModel < TorchModel
           element = element.gsub("\n", " ")
           ffile.puts [label, element].flatten * "\t"
         end
+        ffile.sync
       end
     else
       Open.write(tsv_dataset_file) do |ffile|
@@ -30,6 +31,7 @@ class HuggingfaceModel < TorchModel
           element = element.gsub("\n", " ")
           ffile.puts element 
         end
+        ffile.sync
       end
     end
 
