@@ -19,13 +19,17 @@ class HuggingfaceModel < TorchModel
       Open.write(tsv_dataset_file) do |ffile|
         ffile.puts ["label", "text"].flatten * "\t"
         elements.zip(labels).each do |element,label|
+          element = element.gsub("\n", " ")
           ffile.puts [label, element].flatten * "\t"
         end
       end
     else
       Open.write(tsv_dataset_file) do |ffile|
         ffile.puts ["text"].flatten * "\t"
-        elements.each{|element| ffile.puts element }
+        elements.each do |element|
+          element = element.gsub("\n", " ")
+          ffile.puts element 
+        end
       end
     end
 
