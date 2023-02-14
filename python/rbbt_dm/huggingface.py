@@ -66,7 +66,7 @@ def load_json(json_file):
     return load_dataset('json', data_files=[json_file])
 
 def tokenize_dataset(tokenizer, dataset):
-    return dataset.map(lambda subset: subset if ("input_ids" in subset.keys()) else tokenizer(subset["text"]), batched=True)
+    return dataset.map(lambda subset: subset if ("input_ids" in subset.keys()) else tokenizer(subset["text"], truncation=True), batched=True)
 
 def tsv_dataset(tokenizer, tsv_file):
     dataset = load_tsv(tsv_file)
