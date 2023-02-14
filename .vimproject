@@ -46,14 +46,9 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
  python=python filter="*.py"{
   rbbt_dm=rbbt_dm{
    __init__.py
-   autoencoder.py
    huggingface.py
-<<<<<<< Updated upstream
    language_model.py
    transformer.py
-=======
-   tokenclassifier.py
->>>>>>> Stashed changes
   }
   test.py
  }
