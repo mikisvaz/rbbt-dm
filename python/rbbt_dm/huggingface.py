@@ -6,15 +6,14 @@ def import_module_class(module, class_name):
     return eval(class_name)
 
 def load_model(task, checkpoint, **kwargs):
-    class_name = 'AutoModelFor' + task
-    try:
-        return import_module_class('transformers', class_name).from_pretrained(checkpoint)
-    except:
+    if (":" in task):
         module, class_name = task.split(":")
         if (task == None):
             module, class_name = None, module
         return import_module_class(module, class_name).from_pretrained(checkpoint, **kwargs)
-
+    else:
+        class_name = 'AutoModelFor' + task
+        return import_module_class('transformers', class_name).from_pretrained(checkpoint)
 
 def load_tokenizer(task, checkpoint, **kwargs):
     class_name = 'AutoTokenizer'

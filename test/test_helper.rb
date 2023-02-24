@@ -19,4 +19,17 @@ class Test::Unit::TestCase
   def datafile_test(file)
     Test::Unit::TestCase.datafile_test(file)
   end
+
+  def with_python(code, &block)
+    TmpFile.with_file do |dir|
+      pkg = "pkg#{rand(100)}"
+      Open.write File.join(dir, "#{pkg}/__init__.py"), code
+
+      RbbtPython.add_path dir
+
+      Misc.in_dir dir do
+        yield pkg
+      end
+    end
+  end
 end

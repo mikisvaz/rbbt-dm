@@ -1,6 +1,5 @@
 pkg
-python/__pycache__/
-python/rbbt_dm/__pycache__/
+__pycache__
 notebooks
 .ropeproject/
 *.old.*
