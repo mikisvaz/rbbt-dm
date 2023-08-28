@@ -145,7 +145,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     @model_options = model_options
 
     if @directory
-      FileUtils.mkdir_p @directory unless File.exists?(@directory)
+      FileUtils.mkdir_p @directory unless File.exist?(@directory)
 
       @model_path            = File.join(@directory, "model")
 
@@ -165,14 +165,14 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       @levels_file           = File.join(@directory, "levels")
       @options_file          = File.join(@directory, "options.json")
 
-      if File.exists?(@options_file)
+      if File.exist?(@options_file)
         @model_options = JSON.parse(Open.read(@options_file)).merge(@model_options || {})
         IndiferentHash.setup(@model_options)
       end
     end
     
     if extract_features.nil?
-      if @extract_features_file && File.exists?(@extract_features_file)
+      if @extract_features_file && File.exist?(@extract_features_file)
         @extract_features = __load_method @extract_features_file
       end
     else
@@ -180,7 +180,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     if init_model.nil?
-      if @init_model_path && File.exists?(@init_model_path)
+      if @init_model_path && File.exist?(@init_model_path)
         @init_model = __load_method @init_model_path
       end
     else
@@ -188,9 +188,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     if train_model.nil?
-      if @train_model_path && File.exists?(@train_model_path)
+      if @train_model_path && File.exist?(@train_model_path)
         @train_model = __load_method @train_model_path
-      elsif @train_model_path_R && File.exists?(@train_model_path_R)
+      elsif @train_model_path_R && File.exist?(@train_model_path_R)
         @train_model = Open.read(@train_model_path_R)
       end
     else
@@ -198,9 +198,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     if eval_model.nil?
-      if @eval_model_path && File.exists?(@eval_model_path)
+      if @eval_model_path && File.exist?(@eval_model_path)
         @eval_model = __load_method @eval_model_path
-      elsif @eval_model_path_R && File.exists?(@eval_model_path_R)
+      elsif @eval_model_path_R && File.exist?(@eval_model_path_R)
         @eval_model = Open.read(@eval_model_path_R)
       end
     else
@@ -208,9 +208,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     if post_process.nil?
-      if @post_process_file && File.exists?(@post_process_file)
+      if @post_process_file && File.exist?(@post_process_file)
         @post_process = __load_method @post_process_file
-      elsif @post_process_file_R && File.exists?(@post_process_file_R)
+      elsif @post_process_file_R && File.exist?(@post_process_file_R)
         @post_process = Open.read(@post_process_file_R)
       end
     else
@@ -219,7 +219,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
 
     if names.nil?
-      if @names_file && File.exists?(@names_file)
+      if @names_file && File.exist?(@names_file)
         @names = Open.read(@names_file).split("\n")
       end
     else
@@ -227,10 +227,10 @@ cat(paste(label, sep="\\n", collapse="\\n"));
     end
 
     if factor_levels.nil?
-      if @levels_file && File.exists?(@levels_file)
+      if @levels_file && File.exist?(@levels_file)
         @factor_levels = YAML.load(Open.read(@levels_file))
       end
-      if @model_path && File.exists?(@model_path + '.factor_levels')
+      if @model_path && File.exist?(@model_path + '.factor_levels')
         @factor_levels = TSV.open(@model_path + '.factor_levels')
       end
     else
