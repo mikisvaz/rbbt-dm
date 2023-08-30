@@ -45,7 +45,7 @@ class RbbtMatrix
       end
 
       file = file.find if Path === file
-      FileUtils.mkdir_p File.dirname(file) unless file.nil? or File.exists? File.dirname(file)
+      FileUtils.mkdir_p File.dirname(file) unless file.nil? or File.exist? File.dirname(file)
 
       cmd = <<-EOS
 
@@ -71,10 +71,10 @@ end
 
 
 #def self.analyze(datafile,  main, contrast = nil, log2 = false, outfile = nil, key_field = nil, two_channel = nil)
-#  FileUtils.mkdir_p File.dirname(outfile) unless outfile.nil? or File.exists? File.dirname(outfile)
+#  FileUtils.mkdir_p File.dirname(outfile) unless outfile.nil? or File.exist? File.dirname(outfile)
 #  GE.run_R("rbbt.GE.process(#{ R.ruby2R datafile }, main = #{R.ruby2R(main, :strings => true)}, contrast = #{R.ruby2R(contrast, :strings => true)}, log2=#{ R.ruby2R log2 }, outfile = #{R.ruby2R outfile}, key.field = #{R.ruby2R key_field}, two.channel = #{R.ruby2R two_channel})")
 #end
 #def self.barcode(datafile, outfile, factor = 2)
-#  FileUtils.mkdir_p File.dirname(outfile) unless outfile.nil? or File.exists? File.dirname(outfile)
+#  FileUtils.mkdir_p File.dirname(outfile) unless outfile.nil? or File.exist? File.dirname(outfile)
 #  GE.run_R("rbbt.GE.barcode(#{ R.ruby2R datafile }, #{ R.ruby2R outfile }, #{ R.ruby2R factor })")
 #end

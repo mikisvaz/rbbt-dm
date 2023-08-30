@@ -130,7 +130,7 @@ print(fit)
       erase = true
     end
 
-    FileUtils.mkdir_p directory unless File.exists? directory
+    FileUtils.mkdir_p directory unless File.exist? directory
     input_directory  = File.join(directory, 'inputs')
     parameter_chains = File.join(directory, 'chains') unless erase
     summary          = File.join(directory, 'summary') unless erase

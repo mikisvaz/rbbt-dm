@@ -13,7 +13,7 @@ class KnowledgeBase
 
     return matrix if RbbtMatrix === matrix
 
-    Path.setup(matrix) if not Path === matrix and File.exists? matrix
+    Path.setup(matrix) if not Path === matrix and File.exist? matrix
 
     raise "Registered matrix is strange: #{Misc.fingerprint matrix}" unless Path === matrix
 

@@ -119,7 +119,7 @@ module BarPlot
     options = Misc.add_defaults options, :width => [options[:total], MAX_WIDTH].min, :height => 20, :background => PNG::Color::White
     width, height, background, canvas = Misc.process_options options, :width, :height, :background, :canvas
 
-    canvas ||= if options[:update] and options[:filename] and File.exists? options[:filename]
+    canvas ||= if options[:update] and options[:filename] and File.exist? options[:filename]
                  PNG.load_file options[:filename]
                else
                  PNG::Canvas.new width, height, get_color(background) 

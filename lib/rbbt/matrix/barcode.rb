@@ -3,7 +3,7 @@ require 'rbbt/util/R'
 class RbbtMatrix
   def barcode(outfile, factor = 2)
 
-    FileUtils.mkdir_p File.dirname(outfile) unless outfile.nil? or File.exists? File.dirname(outfile)
+    FileUtils.mkdir_p File.dirname(outfile) unless outfile.nil? or File.exist? File.dirname(outfile)
     cmd =<<-EOF
 source('#{Rbbt.share.R['barcode.R'].find}')
 rbbt.GE.barcode.mode(#{ R.ruby2R self.data_file }, #{ R.ruby2R outfile }, #{ R.ruby2R factor })
@@ -49,7 +49,7 @@ rbbt.GE.barcode.mode(#{ R.ruby2R self.data_file }, #{ R.ruby2R outfile }, #{ R.r
 
     clusters = Array === clusters ? clusters : (2..clusters).to_a
 
-    FileUtils.mkdir_p File.dirname(outfile) unless outfile.nil? or File.exists? File.dirname(outfile)
+    FileUtils.mkdir_p File.dirname(outfile) unless outfile.nil? or File.exist? File.dirname(outfile)
     cmd =<<-EOF
 source('#{Rbbt.share.R['barcode.R'].find}')
 rbbt.GE.activity_cluster(#{ R.ruby2R self.data_file }, #{ R.ruby2R outfile }, #{R.ruby2R key_field}, #{R.ruby2R clusters})
