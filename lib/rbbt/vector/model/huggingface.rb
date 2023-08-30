@@ -40,14 +40,15 @@ class HuggingfaceModel < TorchModel
 
   def initialize(task, checkpoint, dir = nil, model_options = {})
     super(dir, model_options)
+
     @model_options = Misc.add_defaults @model_options, :task => task, :checkpoint => checkpoint
 
     init_model do 
       checkpoint = @model_path && File.directory?(@model_path) ? @model_path : @model_options[:checkpoint]
       model = RbbtPython.call_method("rbbt_dm.huggingface", :load_model, 
-                                     @model_options[:task], checkpoint, **(model_options[:model_args] || {}))
+                                     @model_options[:task], checkpoint, **(IndiferentHash.setup(model_options[:model_args]) || {}))
       tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_tokenizer, 
-                                         @model_options[:task], checkpoint, **(model_options[:tokenizer_args] || {}))
+                                         @model_options[:task], checkpoint, **(IndiferentHash.setup(model_options[:tokenizer_args]) || {}))
 
       [model, tokenizer]
     end

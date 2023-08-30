@@ -91,8 +91,6 @@ def train_model(model, tokenizer, training_args, dataset, class_weights=None, **
     else:
         tokenized_dataset = tokenize_dataset(tokenizer, dataset)
 
-    print(tokenized_dataset["train"])
-
     if (not class_weights == None):
         import torch
         from torch import nn

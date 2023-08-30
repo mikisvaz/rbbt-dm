@@ -142,7 +142,7 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
   def initialize(directory = nil, model_options = {})
     @directory = directory
-    @model_options = model_options
+    @model_options = IndiferentHash.setup(model_options)
 
     if @directory
       FileUtils.mkdir_p @directory unless File.exist?(@directory)
