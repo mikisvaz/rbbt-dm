@@ -29,11 +29,15 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
     model.rb
     model=model{
      torch.rb
-     pytorch_lightning.rb
+     torch=torch{
+      dataloader.rb
+      introspection.rb
+     }
      huggingface.rb
      huggingface=huggingface{
       masked_lm.rb
      }
+     pytorch_lightning.rb
      random_forest.rb
      spaCy.rb
      svm.rb
@@ -47,20 +51,13 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
  python=python filter="*.py"{
   rbbt_dm=rbbt_dm{
    __init__.py
+   util.py
    huggingface.py
    language_model.py
-   util.py
    atcold=atcold{
     __init__.py
     plot_lib.py
     spiral.py
-   }
-  }
-  uvacdl=uvacdl{
-   __init__.py
-   transformer.py
-   data=data{
-    utils.py
    }
   }
   test.py

@@ -2,82 +2,77 @@ require File.join(File.expand_path(File.dirname(__FILE__)), '../../..', 'test_he
 require 'rbbt/vector/model/pytorch_lightning'
 
 class TestPytorchLightning < Test::Unit::TestCase
-  def test_clustering
-    nsamples = 10
-    ngenes = 10000
-    samples = nsamples.times.collect{|i| "Sample-#{i}" }
-    data = TSV.setup({}, :key_field => "Gene", :fields => samples + ["cluster"], :type => :list, :cast => :to_f)
+  def test_regresion
+    points = 10
+    a = 1
+    b = 1
 
-    profiles = []
-    p0 = 3
-    p1 = 7
-    profiles[0] = nsamples.times.collect{ rand() + p0 }
-    profiles[1] = nsamples.times.collect{ rand() + p1 }
-
-    ngenes.times do |genen|
-      gene = "Gene-#{genen}"
-      cluster = genen % 2 
-      values = profiles[cluster].collect do |m|
-        rand() + m
-      end
-      data[gene] = values + [cluster]
-    end
-
+    x = (0..points - 1)
+    y = points.times.collect{|p| p }
+    
     python = <<~EOF
-import torch
-from torch import nn
-from torch.nn import functional as F
-from torch.utils.data import DataLoader
-from torch.utils.data import random_split
-from torchvision.datasets import MNIST
-from torchvision import transforms
 import pytorch_lightning as pl
+import numpy as np
+import torch
+from torch.nn import MSELoss
+from torch.optim import Adam
+from torch.utils.data import DataLoader, Dataset
+import torch.nn as nn
+
+
+class SimpleDataset(Dataset):
+    def __init__(self):
+        X = np.arange(10000)
+        y = X * 2
+        X = [[_] for _ in X]
+        y = [[_] for _ in y]
+        self.X = torch.Tensor(X)
+        self.y = torch.Tensor(y)
+
+    def __len__(self):
+        return len(self.y)
+
+    def __getitem__(self, idx):
+        return {"X": self.X[idx], "y": self.y[idx]}
+
 
 class TestPytorchLightningModel(pl.LightningModule):
-  def __init__(self, input_size=10, internal_dim=1):
-    super().__init__()
-    self.model = nn.Tanh()
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(1, 1)
+        self.criterion = MSELoss()
 
-  def configure_optimizers(self):
-    optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-    return optimizer
+    def forward(self, inputs, labels=None):
+        outputs = self.fc(inputs)
+        loss = 0
+        if labels is not None:
+            loss = self.criterion(outputs, labels)
+        return loss, outputs
 
-  @torch.cuda.amp.autocast(True)
-  def forward(self, x):
-    x = x.to(self.dtype)
-    return self.model(x).squeeze()
+    def train_dataloader(self):
+        dataset = SimpleDataset()
+        return DataLoader(dataset, batch_size=1000)
 
-  @torch.cuda.amp.autocast(True)
-  def training_step(self, train_batch, batch_idx):
-    x, y = train_batch
-    x = x.to(self.dtype)
-    y = y.to(self.dtype)
-    y_hat = self.model(x).squeeze()
-    loss = F.mse_loss(y, y_hat) 
-    self.log('train_loss', loss)
-    return loss
+    def training_step(self, batch, batch_idx):
+        input_ids = batch["X"]
+        labels = batch["y"]
+        loss, outputs = self(input_ids, labels)
+        return {"loss": loss}
 
-  @torch.cuda.amp.custom_fwd(cast_inputs=torch.float64)
-  def validation_step(self, val_batch, batch_idx):
-    x, y = train_batch
-    y_hat = self.model(x)    
-    loss = F.mse_loss(y, y_hat) 
-    self.log('val_loss', loss)
-
+    def configure_optimizers(self):
+        optimizer = Adam(self.parameters())
+        return optimizer
     EOF
 
     with_python(python) do |pkg|
-      model = PytorchLightningModel.new pkg , "TestPytorchLightningModel", nil, model_args: {internal_dim: 1}
-      TmpFile.with_file(data.to_s) do |data_file|
-        ds = RbbtPython.call_method "rbbt_dm", :tsv, filename: data_file
-        model.loader = RbbtPython.class_new_obj("torch.utils.data", :DataLoader, dataset: ds, batch_size: 64)
-        model.trainer = RbbtPython.class_new_obj("pytorch_lightning", "Trainer", gpus: 1, max_epochs: 5, precision: 16)
-      end
+      model = PytorchLightningModel.new pkg , "TestPytorchLightningModel"
+      model.trainer = RbbtPython.class_new_obj("pytorch_lightning", "Trainer", max_epochs: 5, precision: 16)
       model.train
-      encoding = model.eval_list(data.values.collect{|v| v[0..-2] }).detach().cpu().numpy()
-      iii encoding[0..10]
+
+      res = model.eval(10.0)
+      res = model.eval_list([[10.0], [11.2], [14.3]])
+      assert_equal 3, RbbtPython.numpy2ruby(res).length
     end
   end
-
 end
 

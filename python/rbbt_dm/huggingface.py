@@ -1,4 +1,6 @@
 #{{{ LOAD MODEL
+import datasets
+import rbbt
 
 def import_module_class(module, class_name):
     if (not module == None):
@@ -57,12 +59,15 @@ def eval_model(model, tokenizer, texts, return_logits = True):
 #{{{ TRAIN AND PREDICT
 
 def load_tsv(tsv_file):
-    from datasets import load_dataset
-    return load_dataset('csv', data_files=[tsv_file], sep="\t")
+    tsv = rbbt.tsv(tsv_file)
+    print(tsv)
+    ds = datasets.Dataset.from_pandas(tsv)
+    d = datasets.DatasetDict()
+    d["train"] = ds
+    return d
 
 def load_json(json_file):
-    from datasets import load_dataset
-    return load_dataset('json', data_files=[json_file])
+    return datasets.load_dataset('json', data_files=[json_file])
 
 def tokenize_dataset(tokenizer, dataset):
     return dataset.map(lambda subset: subset if ("input_ids" in subset.keys()) else tokenizer(subset["text"], truncation=True), batched=True)

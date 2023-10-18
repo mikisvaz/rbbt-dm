@@ -2,42 +2,6 @@ require 'rbbt/vector/model/torch'
 
 class HuggingfaceModel < TorchModel
 
-  def self.tsv_dataset(tsv_dataset_file, elements, labels = nil, class_labels = nil)
-
-    if labels
-      labels = case class_labels
-               when Array
-                 labels.collect{|l| class_labels.index l}
-               when Hash
-                 inverse_class_labels = {}
-                 class_labels.each{|c,l| inverse_class_labels[l] = c }
-                 labels.collect{|l| inverse_class_labels[l]}
-               else
-                 labels
-               end
-
-      Open.write(tsv_dataset_file) do |ffile|
-        ffile.puts ["label", "text"].flatten * "\t"
-        elements.zip(labels).each do |element,label|
-          element = element.gsub("\n", " ")
-          ffile.puts [label, element].flatten * "\t"
-        end
-        ffile.sync
-      end
-    else
-      Open.write(tsv_dataset_file) do |ffile|
-        ffile.puts ["text"].flatten * "\t"
-        elements.each do |element|
-          element = element.gsub("\n", " ")
-          ffile.puts element 
-        end
-        ffile.sync
-      end
-    end
-
-    tsv_dataset_file
-  end
-
   def initialize(task, checkpoint, dir = nil, model_options = {})
     super(dir, model_options)
 
@@ -45,8 +9,10 @@ class HuggingfaceModel < TorchModel
 
     init_model do 
       checkpoint = @model_path && File.directory?(@model_path) ? @model_path : @model_options[:checkpoint]
+
       model = RbbtPython.call_method("rbbt_dm.huggingface", :load_model, 
                                      @model_options[:task], checkpoint, **(IndiferentHash.setup(model_options[:model_args]) || {}))
+
       tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_tokenizer, 
                                          @model_options[:task], checkpoint, **(IndiferentHash.setup(model_options[:tokenizer_args]) || {}))
 
@@ -75,7 +41,7 @@ class HuggingfaceModel < TorchModel
           checkpoint_dir = File.join(tmpdir, 'checkpoints')
         end
 
-        dataset_file = HuggingfaceModel.tsv_dataset(tsv_file, texts)
+        dataset_file = TorchModel.text_dataset(tsv_file, texts)
         training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, @model_options[:training_args])
 
         begin
@@ -102,7 +68,7 @@ class HuggingfaceModel < TorchModel
       end
 
       training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, @model_options[:training_args])
-      dataset_file = HuggingfaceModel.tsv_dataset(tsv_file, texts, labels, @model_options[:class_labels])
+      dataset_file = HuggingfaceModel.text_dataset(tsv_file, texts, labels, @model_options[:class_labels])
 
       RbbtPython.call_method("rbbt_dm.huggingface", :train_model, model, tokenizer, training_args_obj, dataset_file, @model_options[:class_weights])
 
