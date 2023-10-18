@@ -71,7 +71,12 @@ class TorchModel < VectorModel
     super(dir, model_options)
     @training_args = model_options[:training_args] || {}
 
+    init_model do
+      self.load_torch_model
+    end
+
     eval_model do |features,list=false|
+      init
       model.to(device)
 
       tensor = list ? self.tensor(features) : self.tensor([features])
@@ -99,8 +104,10 @@ class TorchModel < VectorModel
           bar.tick
         end
       end
+      save_torch_model
     end
   end
 end
 require_relative 'torch/dataloader'
 require_relative 'torch/introspection'
+require_relative 'torch/load_and_save'
