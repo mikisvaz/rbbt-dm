@@ -28,3 +28,5 @@ def data_directory():
     from pathlib import Path
     print(Path.home())
 
+def model_device(model):
+    return next(model.parameters()).device

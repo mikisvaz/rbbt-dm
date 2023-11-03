@@ -56,7 +56,7 @@ class TestHuggingface < Test::Unit::TestCase
   end
 
 
-  def _test_sst_train
+  def test_sst_train
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -299,7 +299,7 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
     end
   end
 
-  def test_sst_freeze_word_embeddings
+  def _test_sst_freeze_word_embeddings
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 

@@ -448,10 +448,10 @@ cat(paste(label, sep="\\n", collapse="\\n"));
         end
 
         test_set = feature_folds[fix]
-        train_set = feature_folds.values_at(*rest).inject([]){|acc,e| acc += e; acc}
+        train_set = feature_folds.values_at(*rest).flatten(1)
 
         test_labels = labels_folds[fix]
-        train_labels = labels_folds.values_at(*rest).flatten
+        train_labels = labels_folds.values_at(*rest).flatten(1)
 
         @features = train_set
         @labels = train_labels

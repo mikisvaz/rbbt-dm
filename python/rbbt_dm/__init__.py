@@ -1,5 +1,6 @@
 import rbbt
 import torch
+from .util import *
 
 class TSVDataset(torch.utils.data.Dataset):
     def __init__(self, tsv):

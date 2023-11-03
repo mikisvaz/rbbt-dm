@@ -30,6 +30,7 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
     model=model{
      torch.rb
      torch=torch{
+      helpers.rb
       dataloader.rb
       introspection.rb
       load_and_save.rb
@@ -48,6 +49,9 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
    }
    tensorflow.rb
   }
+ }
+ data=data{
+  shakespeare.txt
  }
  python=python filter="*.py"{
   rbbt_dm=rbbt_dm{

@@ -1,37 +1,29 @@
 class TorchModel
-  def model_architecture
-    File.join(@directory, 'model_architecture.pth')
+  def self.model_architecture(model_path)
+    model_path + '.architecture'
   end
 
-  def save_state
+  def self.save_state(model, model_path)
     Log.debug "Saving model state into #{model_path}"
     RbbtPython.torch.save(model.state_dict(), model_path)
   end
 
-  def load_state
+  def self.load_state(model, model_path)
     Log.debug "Loading model state from #{model_path}"
-    @model.load_state_dict(RbbtPython.torch.load(model_path))
+    model.load_state_dict(RbbtPython.torch.load(model_path))
+    model
   end
 
-  def save_architecture
+  def self.save_architecture(model, model_path)
+    model_architecture = model_architecture(model_path)
     Log.debug "Saving model architecture into #{model_architecture}"
     RbbtPython.torch.save(model, model_architecture)
   end
 
-  def load_architecture
+  def self.load_architecture(model_path)
+    model_architecture = model_architecture(model_path)
     return unless Open.exists?(model_architecture)
     Log.debug "Loading model architecture from #{model_architecture}"
-    @model = RbbtPython.torch.load(model_architecture)
-  end
-
-  def save_torch_model
-    save_state
-    save_architecture
-  end
-
-  def load_torch_model
-    load_architecture
-    load_state
-    @model
+    RbbtPython.torch.load(model_architecture)
   end
 end
