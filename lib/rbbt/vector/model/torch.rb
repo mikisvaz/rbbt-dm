@@ -1,10 +1,6 @@
-require 'rbbt/vector/model'
-require 'rbbt/util/python'
+require_relative 'python'
 
-RbbtPython.add_path Rbbt.python.find(:lib)
-RbbtPython.init_rbbt
-
-class TorchModel < VectorModel
+class TorchModel < PythonModel
 
   attr_accessor :model, :criterion, :optimizer, :training_args
 
@@ -26,9 +22,13 @@ class TorchModel < VectorModel
 
       tensor = list ? TorchModel.tensor(features, @device, @dtype) : TorchModel.tensor([features], @device, @dtype)
 
-      res = model.call(tensor)
+      loss, res = model.call(tensor)
 
-      TorchModel::Tensor.setup(list ? res : res[0])
+      res = loss if res.nil?
+
+      res = TorchModel::Tensor.setup(list ? res : res[0])
+
+      res
     end
 
     train_model do |features,labels|
@@ -46,6 +46,7 @@ class TorchModel < VectorModel
         epochs.times do |i|
           @optimizer.zero_grad()
           outputs = model.call(inputs)
+          outputs = outputs.squeeze() if target.dim() == 1
           loss = criterion.call(outputs, target)
           loss.backward()
           @optimizer.step

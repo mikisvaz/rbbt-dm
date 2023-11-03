@@ -26,15 +26,6 @@ class PytorchLightningModel < TorchModel
       end
       trainer.fit(model, loader, val_loader)
     end
-
-    eval_model do |features,list|
-      if list
-        model.call(RbbtPython.call_method(:torch, :tensor, features))[1]
-      else
-        model.call(RbbtPython.call_method(:torch, :tensor, [features]))[1][0]
-      end
-    end
-
   end
 
   def trainer

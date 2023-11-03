@@ -23,8 +23,8 @@ class TestTorch < Test::Unit::TestCase
 
       # Train model
       
-      model.add 5.0, 10.0
-      model.add 10.0, 20.0
+      model.add 5.0, [10.0]
+      model.add 10.0, [20.0]
 
       model.training_args[:epochs] = 1000
       model.train

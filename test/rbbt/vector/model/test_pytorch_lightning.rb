@@ -60,19 +60,28 @@ class TestPytorchLightningModel(pl.LightningModule):
         return {"loss": loss}
 
     def configure_optimizers(self):
-        optimizer = Adam(self.parameters())
+        optimizer = Adam(self.parameters(), lr=0.1)
         return optimizer
     EOF
 
     with_python(python) do |pkg|
       model = PytorchLightningModel.new pkg , "TestPytorchLightningModel"
-      model.trainer = RbbtPython.class_new_obj("pytorch_lightning", "Trainer", max_epochs: 1000, precision: 16)
+      model.trainer = RbbtPython.class_new_obj("pytorch_lightning", "Trainer", max_epochs: 10, precision: 16)
+
       model.train
 
+      w = model.get_weights('fc').to_ruby.first.first
+
+      assert w > 1.8
+      assert w < 2.2
+
       res = model.eval(10.0)
-      iii res
+      assert_equal res, (10 * w)
+      assert res > 1.8 * 10.0
+      assert res < 2.2 * 10.0
+
+      res = model.eval([10.0])
       res = model.eval_list([[10.0], [11.2], [14.3]])
-      iii res
       assert_equal 3, RbbtPython.numpy2ruby(res).length
     end
   end
