@@ -2,16 +2,8 @@ require 'rbbt/vector/model/torch'
 
 class PytorchLightningModel < TorchModel
   attr_accessor :loader, :val_loader, :trainer
-  def initialize(module_name, class_name, dir = nil, model_options = {})
-    super(dir, model_options)
-    @module_name = module_name
-    @class_name = class_name
-
-    init_model do 
-      RbbtPython.pyimport :torch
-      RbbtPython.pyimport @module_name
-      @model = RbbtPython.class_new_obj(@module_name, @class_name, @model_options[:model_args] || {})
-    end
+  def initialize(...)
+    super(...)
 
     train_model do |features,labels|
       model = init
@@ -25,6 +17,8 @@ class PytorchLightningModel < TorchModel
         end
       end
       trainer.fit(model, loader, val_loader)
+      TorchModel.save_architecture(model, model_path) if @directory
+      TorchModel.save_state(model, model_path) if @directory
     end
   end
 

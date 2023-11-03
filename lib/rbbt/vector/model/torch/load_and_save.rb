@@ -9,6 +9,7 @@ class TorchModel
   end
 
   def self.load_state(model, model_path)
+    return model unless Open.exists?(model_path)
     Log.debug "Loading model state from #{model_path}"
     model.load_state_dict(RbbtPython.torch.load(model_path))
     model

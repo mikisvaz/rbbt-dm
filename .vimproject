@@ -50,7 +50,6 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
      util.rb
     }
    }
-   tensorflow.rb
   }
  }
  data=data{

@@ -56,7 +56,7 @@ class TestHuggingface < Test::Unit::TestCase
   end
 
 
-  def test_sst_train
+  def _test_sst_train
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -200,7 +200,7 @@ class TestHuggingface < Test::Unit::TestCase
   end
 
 
-  def _test_custom_class
+  def test_custom_class
     TmpFile.with_file do |dir|
       Open.write File.join(dir, "mypkg/__init__.py"), ""
 

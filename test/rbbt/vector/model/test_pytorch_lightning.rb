@@ -64,9 +64,13 @@ class TestPytorchLightningModel(pl.LightningModule):
         return optimizer
     EOF
 
-    with_python(python) do |pkg|
-      model = PytorchLightningModel.new pkg , "TestPytorchLightningModel"
+    TmpFile.with_dir do |dir|
+      Open.write(File.join(dir, 'model.py'), python)
+      model = PytorchLightningModel.new dir, "TestPytorchLightningModel"
+      model.init
+
       model.trainer = RbbtPython.class_new_obj("pytorch_lightning", "Trainer", max_epochs: 10, precision: 16)
+      model.init
 
       model.train
 
@@ -83,6 +87,10 @@ class TestPytorchLightningModel(pl.LightningModule):
       res = model.eval([10.0])
       res = model.eval_list([[10.0], [11.2], [14.3]])
       assert_equal 3, RbbtPython.numpy2ruby(res).length
+
+      model = VectorModel.new dir
+      model.init
+
     end
   end
 end

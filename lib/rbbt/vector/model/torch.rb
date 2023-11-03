@@ -4,14 +4,19 @@ class TorchModel < PythonModel
 
   attr_accessor :model, :criterion, :optimizer, :training_args
 
-  def initialize(dir = nil, model_options = {})
+  def initialize(...)
     TorchModel.init_python
-    super(dir, model_options)
+    super(...)
     @training_args = model_options[:training_args] || {}
 
     init_model do
-      model = TorchModel.load_architecture(model_path) if @directory
-      TorchModel.load_state(model, model_path) if @directory
+      model = TorchModel.load_architecture(model_path) 
+      if model.nil?
+        RbbtPython.add_path @directory 
+        RbbtPython.class_new_obj(@python_module, @python_class, **model_options)
+      else
+        TorchModel.load_state(model, model_path)
+      end
     end
 
     eval_model do |features,list=false|
@@ -32,6 +37,7 @@ class TorchModel < PythonModel
     end
 
     train_model do |features,labels|
+      init
       @device ||= TorchModel.device(model_options)
       @dtype ||= TorchModel.dtype(model_options)
       model.to(@device)
