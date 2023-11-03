@@ -66,11 +66,13 @@ class TestPytorchLightningModel(pl.LightningModule):
 
     with_python(python) do |pkg|
       model = PytorchLightningModel.new pkg , "TestPytorchLightningModel"
-      model.trainer = RbbtPython.class_new_obj("pytorch_lightning", "Trainer", max_epochs: 5, precision: 16)
+      model.trainer = RbbtPython.class_new_obj("pytorch_lightning", "Trainer", max_epochs: 1000, precision: 16)
       model.train
 
       res = model.eval(10.0)
+      iii res
       res = model.eval_list([[10.0], [11.2], [14.3]])
+      iii res
       assert_equal 3, RbbtPython.numpy2ruby(res).length
     end
   end

@@ -39,12 +39,13 @@ class TorchModel < VectorModel
       epochs = training_args[:epochs] || 3
 
       inputs = TorchModel.tensor(features, @device, @dtype)
+      #target = TorchModel.tensor(labels.collect{|v| [v] }, @device, @dtype)
       target = TorchModel.tensor(labels, @device, @dtype)
 
       Log::ProgressBar.with_bar epochs, :desc => "Training" do |bar|
         epochs.times do |i|
           @optimizer.zero_grad()
-          loss, outputs = model.call(inputs)
+          outputs = model.call(inputs)
           loss = criterion.call(outputs, target)
           loss.backward()
           @optimizer.step

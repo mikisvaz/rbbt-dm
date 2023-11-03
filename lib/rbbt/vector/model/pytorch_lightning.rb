@@ -25,7 +25,6 @@ class PytorchLightningModel < TorchModel
         end
       end
       trainer.fit(model, loader, val_loader)
-
     end
 
     eval_model do |features,list|

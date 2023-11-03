@@ -23,8 +23,8 @@ class TestTorch < Test::Unit::TestCase
 
       # Train model
       
-      model.add 5, [10]
-      model.add 10, [20]
+      model.add 5.0, 10.0
+      model.add 10.0, 20.0
 
       model.training_args[:epochs] = 1000
       model.train
@@ -40,12 +40,12 @@ class TestTorch < Test::Unit::TestCase
 
       # Test model
 
-      y = model.eval(100)
+      y = model.eval(100.0)
 
-      assert(y > 150)
-      assert(y < 250)
+      assert(y > 150.0)
+      assert(y < 250.0)
 
-      test = [1, 5, 10, 20]
+      test = [1.0, 5.0, 10.0, 20.0]
       input_sum = Misc.sum(test)
       sum = Misc.sum(model.eval_list(test))
       assert sum > 0.8 * input_sum * 2
