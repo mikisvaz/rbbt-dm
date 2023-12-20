@@ -3,7 +3,7 @@ require 'rbbt/vector/model/torch'
 class HuggingfaceModel < TorchModel
 
   def initialize(task, checkpoint, dir = nil, model_options = {})
-    super(dir, model_options)
+    super(dir, nil, model_options)
 
     @model_options = Misc.add_defaults @model_options, :task => task, :checkpoint => checkpoint
 
@@ -13,8 +13,10 @@ class HuggingfaceModel < TorchModel
       model = RbbtPython.call_method("rbbt_dm.huggingface", :load_model, 
                                      @model_options[:task], checkpoint, **(IndiferentHash.setup(model_options[:model_args]) || {}))
 
+      tokenizer_checkpoint = @model_options[:tokenizer_checkpoint] || checkpoint
+
       tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_tokenizer, 
-                                         @model_options[:task], checkpoint, **(IndiferentHash.setup(model_options[:tokenizer_args]) || {}))
+                                         @model_options[:task], tokenizer_checkpoint, **(IndiferentHash.setup(model_options[:tokenizer_args]) || {}))
 
       [model, tokenizer]
     end

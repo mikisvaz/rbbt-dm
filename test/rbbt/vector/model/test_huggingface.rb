@@ -42,7 +42,7 @@ class TestHuggingface < Test::Unit::TestCase
     assert_equal 5, tokenizer.call("This is a sentence that has several words", truncation: true)["input_ids"].__len__
   end
 
-  def _test_sst_eval
+  def test_sst_eval
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -200,7 +200,7 @@ class TestHuggingface < Test::Unit::TestCase
   end
 
 
-  def test_custom_class
+  def _test_custom_class
     TmpFile.with_file do |dir|
       Open.write File.join(dir, "mypkg/__init__.py"), ""
 
