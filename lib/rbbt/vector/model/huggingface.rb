@@ -5,6 +5,8 @@ class HuggingfaceModel < TorchModel
   def initialize(task, checkpoint, dir = nil, model_options = {})
     super(dir, nil, model_options)
 
+    checkpoint = checkpoint.find if Path === checkpoint
+
     @model_options = Misc.add_defaults @model_options, :task => task, :checkpoint => checkpoint
 
     init_model do 
