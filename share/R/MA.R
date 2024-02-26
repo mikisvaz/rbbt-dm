@@ -106,7 +106,8 @@ rbbt.dm.matrix.differential.limma <- function(data, main, contrast=NULL, log2=NU
        data <- DGEList(data)
        data <- calcNormFactors(data)
        data = cpm(data, log=TRUE, prior.count=3)
-       data <- data[-drop,]
+       if (length(drop) > 0)
+           data <- data[-drop,]
     }else{
        data[data == 0] = NA
        good.rows = apply(is.na(data),1,sum) != dim(data)[2]
@@ -181,7 +182,7 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, type = 'lim
         contrast <- make.names(contrast);
     }
 
-    if (type == 'limma')
+    if (is.null(type) || type == 'limma')
         result = rbbt.dm.matrix.differential.limma(data, main, contrast, log2, two.channel, eBayes.trend)
     else
         result = rbbt.dm.matrix.differential.DESeq(data, main, contrast)
