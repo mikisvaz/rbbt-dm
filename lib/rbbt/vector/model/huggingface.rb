@@ -2,6 +2,17 @@ require 'rbbt/vector/model/torch'
 
 class HuggingfaceModel < TorchModel
 
+  attr_accessor :tokenizer
+  def init
+    @model, @tokenizer = self.instance_exec(&@init_model) if @model.nil?
+    [@model, @tokenizer]
+  end
+
+  def tokenizer
+    init
+    @tokenizer
+  end
+
   def initialize(task, checkpoint, dir = nil, model_options = {})
     super(dir, nil, model_options)
 

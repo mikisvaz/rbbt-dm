@@ -2,7 +2,7 @@ require_relative 'python'
 
 class TorchModel < PythonModel
 
-  attr_accessor :model, :criterion, :optimizer, :training_args
+  attr_accessor :criterion, :optimizer, :training_args
 
   def initialize(...)
     TorchModel.init_python
