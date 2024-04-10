@@ -482,8 +482,11 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       @labels = orig_labels
     end unless folds == -1
 
-    self.reset_model if self.respond_to? :reset_model
-    self.train unless folds == 1
+    if folds != 1
+      self.reset_model if self.respond_to? :reset_model
+      self.train 
+    end
+
     res
   end
 end
