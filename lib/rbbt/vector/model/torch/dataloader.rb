@@ -44,11 +44,10 @@ class TorchModel
   def self.text_dataset(tsv_dataset_file, elements, labels = nil, class_labels = nil)
     elements = elements.compact.collect{|e| e.gsub("\n", ' ') }
     tsv = feature_tsv(elements, labels, class_labels)
+    tsv.fields[0] = "text"
     if labels.nil?
-      tsv.fields[0] = "text"
-      tsv.type = :single
+      tsv = tsv.to_single
     else
-      tsv.fields[0] = "text"
       tsv.type = :list
     end
     Open.write(tsv_dataset_file, tsv.to_s)
