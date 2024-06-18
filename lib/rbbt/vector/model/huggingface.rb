@@ -107,43 +107,47 @@ class HuggingfaceModel < TorchModel
         predictions = result["logits"]
       end
 
-      task, class_labels, locate_tokens = @model_options.values_at :task, :class_labels, :locate_tokens
-      result = case task
-               when "SequenceClassification"
-                 RbbtPython.collect(predictions) do |logits|
-                   logits = RbbtPython.numpy2ruby logits
-                   best_class = logits.index logits.max
-                   best_class = class_labels[best_class] if class_labels
-                   best_class
-                 end
-               when "MaskedLM"
-                 all_token_positions = token_positions.to_a
+      if model_options[:return_logits]
+        result = RbbtPython.numpy2ruby(predictions)
+      else
+        task, class_labels, locate_tokens = @model_options.values_at :task, :class_labels, :locate_tokens
+        result = case task
+                when "SequenceClassification"
+                  RbbtPython.collect(predictions) do |logits|
+                    logits = RbbtPython.numpy2ruby logits
+                    best_class = logits.index logits.max
+                    best_class = class_labels[best_class] if class_labels
+                    best_class
+                  end
+                when "MaskedLM"
+                  all_token_positions = token_positions.to_a
 
-                 i = 0
-                 RbbtPython.collect(predictions) do |item_logits|
-                   item_token_positions = all_token_positions[i]
-                   i += 1
+                  i = 0
+                  RbbtPython.collect(predictions) do |item_logits|
+                    item_token_positions = all_token_positions[i]
+                    i += 1
 
-                   item_logits = RbbtPython.numpy2ruby(item_logits)
-                   item_masks = item_token_positions.collect do |token_positions|
+                    item_logits = RbbtPython.numpy2ruby(item_logits)
+                    item_masks = item_token_positions.collect do |token_positions|
 
-                     best = item_logits.values_at(*token_positions).collect do |logits|
-                       best_token, best_score = nil
-                       logits.each_with_index do |v,i|
-                         if best_score.nil? || v > best_score
-                           best_token, best_score = i, v
-                         end
-                       end
-                       best_token
-                     end
+                      best = item_logits.values_at(*token_positions).collect do |logits|
+                        best_token, best_score = nil
+                        logits.each_with_index do |v,i|
+                          if best_score.nil? || v > best_score
+                            best_token, best_score = i, v
+                          end
+                        end
+                        best_token
+                      end
 
-                     best.collect{|b| tokenizer.decode(b) } * "|"
-                   end
-                   Array === locate_tokens ? item_masks : item_masks.first
-                 end
-               else
-                 predictions
-               end
+                      best.collect{|b| tokenizer.decode(b) } * "|"
+                    end
+                    Array === locate_tokens ? item_masks : item_masks.first
+                  end
+                else
+                  predictions
+                end
+      end
 
       (! is_list || single) && Array === result ? result.first : result
     end

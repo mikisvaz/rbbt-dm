@@ -3,7 +3,7 @@ require 'rbbt/vector/model/huggingface'
 
 class TestHuggingface < Test::Unit::TestCase
 
-  def _test_options
+  def test_options
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
       task = "SequenceClassification"
@@ -18,7 +18,7 @@ class TestHuggingface < Test::Unit::TestCase
     end
   end
 
-  def _test_pipeline
+  def test_pipeline
     require 'rbbt/util/python'
     model = VectorModel.new
     model.post_process do |elements|
@@ -34,7 +34,7 @@ class TestHuggingface < Test::Unit::TestCase
     assert_equal ["POSITIVE"], model.eval("I've been waiting for a HuggingFace course my whole life.")
   end
   
-  def _test_tokenizer_size
+  def test_tokenizer_size
     checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
     tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_tokenizer, 
                                        "MaskedLM", checkpoint, :max_length => 5, :model_max_length => 5)
@@ -55,8 +55,25 @@ class TestHuggingface < Test::Unit::TestCase
     end
   end
 
+  def test_sst_logits
+    TmpFile.with_file do |dir|
+      checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
-  def _test_sst_train
+      model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir, :tokenizer_args => {:max_length => 16}
+
+      model.model_options[:class_labels] = ["Bad", "Good"]
+      model.model_options[:return_logits] = true
+
+      logits = model.eval("This is dog")
+      assert logits[0] > logits[1]
+      logits = model.eval_list(["This is dog", "This is cat"])
+      assert logits[0][0] > logits[0][1]
+      assert logits[1][0] < logits[1][1]
+    end
+  end
+
+
+  def test_sst_train
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -79,7 +96,7 @@ class TestHuggingface < Test::Unit::TestCase
     end
   end
 
-  def _test_sst_train_with_labels
+  def test_sst_train_with_labels
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -103,7 +120,7 @@ class TestHuggingface < Test::Unit::TestCase
   end
 
 
-  def _test_sst_train_no_save
+  def test_sst_train_no_save
     checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
     model = HuggingfaceModel.new "SequenceClassification", checkpoint
@@ -120,7 +137,7 @@ class TestHuggingface < Test::Unit::TestCase
     assert_equal ["Good", "Good"], model.eval_list(["This is dog", "This is cat"])
   end
 
-  def _test_sst_train_save_and_load
+  def test_sst_train_save_and_load
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -153,7 +170,7 @@ class TestHuggingface < Test::Unit::TestCase
     end
   end
 
-  def _test_sst_stress_test
+  def test_sst_stress_test
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -176,7 +193,7 @@ class TestHuggingface < Test::Unit::TestCase
     end
   end
 
-  def _test_mask_eval
+  def test_mask_eval
     checkpoint = "bert-base-uncased"
 
     model = HuggingfaceModel.new "MaskedLM", checkpoint
@@ -184,7 +201,7 @@ class TestHuggingface < Test::Unit::TestCase
       reject{|v| v.empty?}.length
   end
 
-  def _test_mask_eval_tokenizer
+  def test_mask_eval_tokenizer
     checkpoint = "bert-base-uncased"
 
     model = HuggingfaceModel.new "MaskedLM", checkpoint
@@ -200,7 +217,7 @@ class TestHuggingface < Test::Unit::TestCase
   end
 
 
-  def _test_custom_class
+  def test_custom_class
     TmpFile.with_file do |dir|
       Open.write File.join(dir, "mypkg/__init__.py"), ""
 
@@ -269,7 +286,7 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
     end
   end
 
-  def _test_sst_train_word_embeddings
+  def test_sst_train_word_embeddings
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -299,7 +316,7 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
     end
   end
 
-  def _test_sst_freeze_word_embeddings
+  def test_sst_freeze_word_embeddings
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -331,7 +348,7 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
     end
   end
 
-  def _test_sst_save_word_embeddings
+  def test_sst_save_word_embeddings
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
