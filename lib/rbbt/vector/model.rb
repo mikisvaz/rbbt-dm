@@ -254,8 +254,24 @@ cat(paste(label, sep="\\n", collapse="\\n"));
 
   def add_list(elements, labels = nil)
     if @extract_features.nil? || @extract_features.arity == 1
-      elements.zip(labels || [nil]).each do |elem,label|
-        add(elem, label)
+      case labels
+      when nil
+        elements.each do |elem|
+          add(elem)
+        end
+      when Array
+        elements.zip(labels).each do |elem,label|
+          add(elem, label)
+        end
+      when Hash
+        elements.each do |elem|
+          label = labels[elem]
+          add(elem, label)
+        end
+      else
+        elements.each do |elem|
+          add(elem, labels)
+        end
       end
     else
       features = self.instance_exec(nil, elements, &@extract_features)
