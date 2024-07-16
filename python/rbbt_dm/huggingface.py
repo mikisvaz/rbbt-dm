@@ -15,7 +15,7 @@ def load_model(task, checkpoint, **kwargs):
         return import_module_class(module, class_name).from_pretrained(checkpoint, **kwargs)
     else:
         class_name = 'AutoModelFor' + task
-        return import_module_class('transformers', class_name).from_pretrained(checkpoint)
+        return import_module_class('transformers', class_name).from_pretrained(checkpoint, **kwargs)
 
 def load_tokenizer(task, checkpoint, **kwargs):
     class_name = 'AutoTokenizer'

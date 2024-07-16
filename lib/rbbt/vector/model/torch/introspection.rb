@@ -13,19 +13,20 @@ class TorchModel
   end
   def get_weights(...); TorchModel.get_weights(model, ...); end
 
-  def self.freeze(layer)
+  def self.freeze(layer, requires_grad=false)
     begin
-      PyCall.getattr(layer, :weight).requires_grad = false
+      PyCall.getattr(layer, :weight).requires_grad = requires_grad
     rescue
     end
     RbbtPython.iterate(layer.children) do |layer|
-      freeze(layer)
+      freeze(layer, requires_grad)
     end
   end
-  def self.freeze_layer(model, layer)
-    layer = get_layer(model, layer)
-    freeze(layer)
-  end
-  def freeze_layer(...); TorchModel.freeze_layer(model, ...); end
 
+  def self.freeze_layer(model, layer, requires_grad = false)
+    layer = get_layer(model, layer)
+    freeze(layer, requires_grad)
+  end
+
+  def freeze_layer(...); TorchModel.freeze_layer(model, ...); end
 end
