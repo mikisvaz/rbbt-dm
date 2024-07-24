@@ -12,6 +12,7 @@ class RbbtMatrix
 
   attr_accessor :data_file, :labels, :value_type, :format, :organism, :identifiers
   def initialize(data_file, labels = nil, value_type = nil, format = nil, organism=nil, identifiers=nil)
+    data_file = data_file.find if Path === data_file
     @data_file = data_file
     @labels = labels 
     @value_type = value_type || 'count'
@@ -42,7 +43,7 @@ class RbbtMatrix
   end
 
   def samples
-    @samples ||= TSV.parse_header(@data_file).fields
+    @samples ||= TSV.parse_header(@data_file)[:fields]
   end
 
   def subsets=(subsets)
@@ -181,9 +182,14 @@ class RbbtMatrix
 
       identifiers = [identifiers, @identifiers, data.identifiers, Organism.identifiers(organism)].flatten.compact.uniq
 
-      data.change_key("Ensembl Gene ID", :identifiers => identifiers.reverse) do |v|
+      new_data = data.change_key("Ensembl Gene ID", :identifiers => identifiers.reverse) do |v|
         Misc.mean(v.compact)
       end
+
+      new_data.delete ""
+      new_data.delete nil
+
+      new_data
     end
     subsets = self.subsets
     matrix = RbbtMatrix.new file, labels, value_type, "Ensembl Gene ID", organism
@@ -202,9 +208,14 @@ class RbbtMatrix
 
       identifiers = [identifiers, @identifiers, data.identifiers, Organism.identifiers(organism)].flatten.compact.uniq
 
-      data.change_key("Associated Gene Name", :identifiers => identifiers.reverse) do |v|
+      new_data = data.change_key("Associated Gene Name", :identifiers => identifiers.reverse) do |v|
         Misc.mean(v.compact)
       end
+
+      new_data.delete ""
+      new_data.delete nil
+
+      new_data
     end
     subsets = self.subsets
     matrix = RbbtMatrix.new file, labels, value_type, "Associated Gene Name", organism

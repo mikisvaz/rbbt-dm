@@ -64,7 +64,7 @@ data = rbbt.dm.matrix.differential(#{ R.ruby2R data_file },
   )
         EOS
 
-        R.run(cmd, :monitor => true)
+      R.run(cmd, :monitor => true)
     end
   end
 end

@@ -99,6 +99,8 @@ rbbt.dm.matrix.differential.limma <- function(data, main, contrast=NULL, log2=NU
     }
 
     if (log2){
+       full_rows = apply(is.na(data), 1, sum) == 0
+       data = data[full_rows,]
        cutoff <- 1
        drop <- which(apply(data, 1, max) < cutoff)
        min = min(data[data != -Inf])
@@ -182,10 +184,11 @@ rbbt.dm.matrix.differential <- function(file, main, contrast = NULL, type = 'lim
         contrast <- make.names(contrast);
     }
 
-    if (is.null(type) || type == 'limma')
+    if (is.null(type) || type == 'limma'){
         result = rbbt.dm.matrix.differential.limma(data, main, contrast, log2, two.channel, eBayes.trend)
-    else
+    }else{
         result = rbbt.dm.matrix.differential.DESeq(data, main, contrast)
+    }
 
     if (is.null(outfile)){
         return(result);
