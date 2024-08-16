@@ -42,7 +42,7 @@ class TorchModel
   end
 
   def self.text_dataset(tsv_dataset_file, elements, labels = nil, class_labels = nil)
-    elements = elements.compact.collect{|e| e.gsub("\n", ' ') }
+    elements = elements.compact.collect{|e| e.gsub("\n", ' ').gsub('"', '\'') }
     tsv = feature_tsv(elements, labels, class_labels)
     tsv.fields[0] = "text"
     if labels.nil?
