@@ -4,6 +4,11 @@ require 'test/unit'
 
 class TestHypergeometric < Test::Unit::TestCase
 
+  def test_hypergeometric_c
+    assert_equal Hypergeometric.hypergeometric_c(2, 1, 1, 1).round(2), 0.5
+    assert_equal Hypergeometric.hypergeometric_c(10, 1, 1, 1).round(2), 0.1
+  end
+
   def test_hypergeometric
     assert Hypergeometric.hypergeometric(100, 20, 15, 13) < 0.0005
   end

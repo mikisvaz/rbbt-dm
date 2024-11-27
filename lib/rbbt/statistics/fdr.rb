@@ -172,7 +172,8 @@ module FDR
         values << p[1]
       }
 
-      if RUBY_VERSION[0] == "2"
+      iii RUBY_VERSION[0]
+      if RUBY_VERSION[0] == "2" || RUBY_VERSION[0] == "3"
         new_values = FDR.adjust(values)
         keys.zip(new_values).each do |k,v|
           vs = data[k] 
@@ -195,8 +196,4 @@ module FDR
       data.unnamed = unnamed if unnamed
     end
   end
-
 end
-
-
-

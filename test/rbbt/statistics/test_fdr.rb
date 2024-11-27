@@ -32,8 +32,6 @@ class TestFDR < Test::Unit::TestCase
     assert_equal(clean(@r_adj), clean(FDR.adjust_native(@values)))
     assert_equal(clean(FDR.adjust_fast(@values)), clean(FDR.adjust_native(@values)))
 
-    assert_equal(clean(@r_adj), clean(FDR.adjust_fast_self(copy(@values)))) if RUBY_VERSION[0] != "2"
+    assert_equal(clean(@r_adj), clean(FDR.adjust_fast_self(copy(@values)))) if RUBY_VERSION[0].to_i < 2
   end
 end
-
-

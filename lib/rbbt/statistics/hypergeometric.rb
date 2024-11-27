@@ -64,10 +64,10 @@ double lBinom(double n, double k)
     builder.c_singleton <<-EOC
 /**
 *  * Compute the Hypergeometric accumulated value.
-*  * @param total       => total size
-*  * @param support     => total support
-*  * @param list        => selected list size
-*  * @param found       => support
+*  * @param total       => Balls in urn
+*  * @param support     => Positive balls in urn
+*  * @param list        => Drawn balls
+*  * @param found       => Positive drawn balls
 *  * @return The result
 *  */
         //pvalues[annotation] = Hypergeometric.hypergeometric(tsv_size, counts[annotation], total, count)
@@ -102,9 +102,12 @@ double hypergeometric_c(double total, double support, double list, double found)
     EOC
   end
 
-  def self.hypergeometric(count, positive, negative, total)
-    #RSRuby.instance.phyper(count - 1, positive, negative, total, false).to_f
+  def self.hypergeometric_R(count, positive, negative, total)
     R.eval("phyper(#{ count } - 1, #{ positive }, #{ negative }, #{ total }, lower.tail=FALSE)").to_f
+  end
+
+  def self.hypergeometric(count, positive, negative, total)
+    hypergeometric_c(positive + negative, positive, total, count) 
   end
 end
 
@@ -260,7 +263,8 @@ module TSV
         elems = elems.collect{|elem| rename.include?(elem)? rename[elem] : elem }.compact.uniq if rename
         count = elems.length
         next if count < options[:min_support] or not counts.include? annotation
-        pvalues[annotation] = Hypergeometric.hypergeometric(count, counts[annotation], tsv_size - counts[annotation], total)
+        #pvalues[annotation] = Hypergeometric.hypergeometric(count, counts[annotation], tsv_size - counts[annotation], total)
+        pvalues[annotation] = Hypergeometric.hypergeometric_c(tsv_size, counts[annotation], total, count)
       end
 
       pvalues = FDR.adjust_hash! pvalues if options[:fdr]
@@ -268,7 +272,7 @@ module TSV
       pvalues.delete_if{|k, pvalue| pvalue > options[:cutoff] } if options[:cutoff]
 
       if add_keys
-        tsv = TSV.setup(pvalues.keys.collect{|k| k.dup}, :key_field => fields, :fields => [], :type => :double)
+        tsv = TSV.setup(pvalues.keys.collect{|k| k.dup }, :key_field => fields, :fields => [], :type => :double)
 
         tsv.add_field 'p-value' do |annot, values|
           [pvalues[annot]]
