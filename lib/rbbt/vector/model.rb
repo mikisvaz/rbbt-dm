@@ -166,8 +166,9 @@ cat(paste(label, sep="\\n", collapse="\\n"));
       @options_file          = File.join(@directory, "options.json")
 
       if File.exist?(@options_file)
-        @model_options = JSON.parse(Open.read(@options_file)).merge(@model_options || {})
-        IndiferentHash.setup(@model_options)
+        file_options = JSON.parse(Open.read(@options_file))
+        IndiferentHash.setup(file_options)
+        @model_options = file_options.deep_merge(@model_options)
       end
     end
     

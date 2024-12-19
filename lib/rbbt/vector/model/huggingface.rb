@@ -18,18 +18,31 @@ class HuggingfaceModel < TorchModel
 
     checkpoint = checkpoint.find if Path === checkpoint
 
-    @model_options = Misc.add_defaults @model_options, :task => task, :checkpoint => checkpoint
+    @model_options[:training_options] = @model_options.delete(:training_args) if @model_options.include?(:training_args)
+    @model_options[:tokenizer_options] = @model_options.delete(:tokenizer_args) if @model_options.include?(:tokenizer_args)
+    @model_options[:model_options] = @model_options.delete(:model_args) if @model_options.include?(:model_args)
+
+    training_args = IndiferentHash.pull_keys @model_options, :training
+    tokenizer_args = IndiferentHash.pull_keys @model_options, :tokenizer
+    model_args = IndiferentHash.pull_keys @model_options, :model
+
+    @model_options[:training_args] = training_args
+    @model_options[:tokenizer_args] = tokenizer_args
+    @model_options[:model_args] = model_args
+
+    @model_options = @model_options.merge(task: task, checkpoint: checkpoint)
+
 
     init_model do 
       checkpoint = @model_path && File.directory?(@model_path) ? @model_path : @model_options[:checkpoint]
 
       model = RbbtPython.call_method("rbbt_dm.huggingface", :load_model, 
-                                     @model_options[:task], checkpoint, **(IndiferentHash.setup(model_options[:model_args]) || {}))
+                                     @model_options[:task], checkpoint, **(IndiferentHash.setup(@model_options[:model_args])))
 
-      tokenizer_checkpoint = @model_options[:tokenizer_checkpoint] || checkpoint
+      tokenizer_checkpoint = @model_options[:tokenizer_args][:checkpoint] || checkpoint
 
       tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_tokenizer, 
-                                         @model_options[:task], tokenizer_checkpoint, **(IndiferentHash.setup(model_options[:tokenizer_args]) || {}))
+                                         @model_options[:task], tokenizer_checkpoint, **(IndiferentHash.setup(@model_options[:tokenizer_args])))
 
       [model, tokenizer]
     end
@@ -107,7 +120,7 @@ class HuggingfaceModel < TorchModel
         predictions = result["logits"]
       end
 
-      if model_options[:return_logits]
+      if @model_options[:return_logits]
         result = RbbtPython.numpy2ruby(predictions)
       else
         task, class_labels, locate_tokens = @model_options.values_at :task, :class_labels, :locate_tokens

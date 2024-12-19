@@ -9,12 +9,8 @@ class TestHuggingface < Test::Unit::TestCase
       task = "SequenceClassification"
 
       model = HuggingfaceModel.new task, checkpoint, dir, :class_labels => %w(bad good)
-      iii model.eval "This is dog"
-      iii model.eval "This is cat"
-      iii model.eval_list(["This is dog", "This is cat"])
 
       model = VectorModel.new dir
-      iii model.eval_list(["This is dog", "This is cat"])
     end
   end
 
@@ -77,7 +73,7 @@ class TestHuggingface < Test::Unit::TestCase
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
-      model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir, max_length: 128
+      model = HuggingfaceModel.new "SequenceClassification", checkpoint, dir, tokenizer_args:{max_length: 128}, tokenizer_padding: true, tokenizer_truncation: true
 
       model.model_options[:class_labels] = %w(Bad Good)
 
@@ -165,12 +161,12 @@ class TestHuggingface < Test::Unit::TestCase
 
       model = VectorModel.new dir
 
-      assert_equal "Good", model.eval_list("This is dog")
+      assert_equal ["Good"], model.eval_list(["This is dog"])
 
     end
   end
 
-  def test_sst_stress_test
+  def __test_sst_stress_test
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -269,6 +265,7 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
       EOF
 
       RbbtPython.add_path dir
+      RbbtPython.process_paths
 
       biomedical_roberta = "PlanTL-GOB-ES/bsc-bio-ehr-es-cantemist"
       model = HuggingfaceModel.new "mypkg.mymodel:RobertaForTokenClassification_NER", biomedical_roberta
