@@ -88,6 +88,9 @@ def training_args(*args, **kwargs):
 def train_model(model, tokenizer, training_args, dataset, class_weights=None, **kwargs):
     from transformers import Trainer
 
+    # Note: Parameters need to be made contiguous. I'm not sure why they weren't
+    for param in model.parameters(): param.data = param.data.contiguous()
+
     if (isinstance(dataset, str)):
         if (dataset.endswith('.json')):
             tokenized_dataset = json_dataset(tokenizer, dataset)
