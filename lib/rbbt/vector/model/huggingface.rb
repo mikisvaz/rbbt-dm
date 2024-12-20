@@ -30,7 +30,8 @@ class HuggingfaceModel < TorchModel
     @model_options[:tokenizer_args] = tokenizer_args
     @model_options[:model_args] = model_args
 
-    @model_options = @model_options.merge(task: task, checkpoint: checkpoint)
+    @model_options[:task] = task if task
+    @model_options[:checkpoint] = checkpoint if checkpoint
 
 
     init_model do 
