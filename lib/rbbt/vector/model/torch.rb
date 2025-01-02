@@ -36,7 +36,7 @@ class TorchModel < PythonModel
 
       res = TorchModel::Tensor.setup(list ? res : res[0])
 
-      res
+      res.to_ruby
     end
 
     train_model do |features,labels|
