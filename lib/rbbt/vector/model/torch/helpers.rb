@@ -3,6 +3,11 @@ class TorchModel
     def to_ruby
       RbbtPython.numpy2ruby(self)
     end
+
+    def length
+      PyCall.len(self)
+    end
+
     def self.setup(obj)
       obj.extend Tensor
     end
