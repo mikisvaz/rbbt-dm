@@ -88,8 +88,13 @@ class TestPytorchLightningModel(pl.LightningModule):
       res = model.eval_list([[10.0], [11.2], [14.3]])
       assert_equal 3, RbbtPython.numpy2ruby(res).length
 
+      orig_res = res
       model = VectorModel.new dir
       model.init
+      res = model.eval([10.0])
+      res = model.eval_list([[10.0], [11.2], [14.3]])
+      assert_equal 3, RbbtPython.numpy2ruby(res).length
+      assert_equal orig_res, res
 
     end
   end

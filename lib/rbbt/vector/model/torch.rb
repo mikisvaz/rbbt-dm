@@ -13,6 +13,7 @@ class TorchModel < PythonModel
       model = TorchModel.load_architecture(model_path) 
       if model.nil?
         RbbtPython.add_path @directory 
+        RbbtPython.process_paths
         RbbtPython.class_new_obj(@python_module, @python_class, **model_options)
       else
         TorchModel.load_state(model, model_path)

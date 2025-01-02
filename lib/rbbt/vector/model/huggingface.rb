@@ -43,7 +43,7 @@ class HuggingfaceModel < TorchModel
       tokenizer_checkpoint = @model_options[:tokenizer_args][:checkpoint] || checkpoint
 
       tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_tokenizer, 
-                                         @model_options[:task], tokenizer_checkpoint, **(IndiferentHash.setup(@model_options[:tokenizer_args])))
+                                         tokenizer_checkpoint, **(IndiferentHash.setup(@model_options[:tokenizer_args])))
 
       [model, tokenizer]
     end

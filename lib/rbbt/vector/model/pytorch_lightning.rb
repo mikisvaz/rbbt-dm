@@ -9,11 +9,19 @@ class PytorchLightningModel < TorchModel
       model = init
       loader = self.loader
       val_loader = self.val_loader
-      if (features && features.any?) && loader.nil?
-        TmpFile.with_file do |tsv_dataset_file|
-          TorchModel.feature_dataset(tsv_dataset_file, features, labels)
-          RbbtPython.pyimport :rbbt_dm
-          loader = RbbtPython.rbbt_dm.tsv(tsv_dataset_file)
+      if (features && features.any?) 
+        if loader.nil?
+          #TmpFile.with_file do |tsv_dataset_file|
+          #  TorchModel.feature_dataset(tsv_dataset_file, features, labels)
+          #  dataset = RbbtPython.rbbt_dm.tsv(tsv_dataset_file)
+          #  loader = RbbtPython.run :torch do
+          #    torch.utils.data.DataLoader.call(dataset, batch_size: 2, shuffle: true)
+          #  end
+          #end
+          dataset = features.zip(labels)
+          loader = RbbtPython.run :torch do
+            torch.utils.data.DataLoader.call(dataset, batch_size: 2, shuffle: true)
+          end
         end
       end
       trainer.fit(model, loader, val_loader)

@@ -67,7 +67,6 @@ rbbt-dm=/$PWD filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.
     spiral.py
    }
   }
-  test.py
  }
  test=test {
   test_helper.rb

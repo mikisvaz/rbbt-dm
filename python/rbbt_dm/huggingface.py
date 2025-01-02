@@ -17,13 +17,13 @@ def load_model(task, checkpoint, **kwargs):
         class_name = 'AutoModelFor' + task
         return import_module_class('transformers', class_name).from_pretrained(checkpoint, **kwargs)
 
-def load_tokenizer(task, checkpoint, **kwargs):
+def load_tokenizer(checkpoint, **kwargs):
     class_name = 'AutoTokenizer'
     return import_module_class('transformers', class_name).from_pretrained(checkpoint, **kwargs)
 
 def load_model_and_tokenizer(task, checkpoint):
     model = load_model(task, checkpoint)
-    tokenizer = load_tokenizer(task, checkpoint)
+    tokenizer = load_tokenizer(checkpoint)
     return model, tokenizer
 
 # Not used

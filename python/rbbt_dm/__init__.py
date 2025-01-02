@@ -27,5 +27,9 @@ def tsv_dataset(filename, *args, **kwargs):
 def tsv(*args, **kwargs):
     return tsv_dataset(*args, **kwargs)
 
+def tsv_loader(*args, **kwargs):
+    dataset = tsv(*args, kwargs)
+    return torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
+
 def data_dir():
     return rbbt.path('var/rbbt_dm/data')

@@ -1,5 +1,4 @@
 require 'rbbt/util/R'
-require 'mkfifo'
 
 module STAN
 
@@ -88,7 +87,7 @@ data{
   end
 
   def self.exec(data, model, input_directory, parameter_chains, sample_file, debug = FALSE, stan_options = {})
-    stan_options = Misc.add_defaults stan_options, :iter => 1000, :warmup => 500, :chains => 1, :seed => 2887, :refresh => 1200
+    stan_options = IndiferentHash.add_defaults stan_options, :iter => 1000, :warmup => 500, :chains => 1, :seed => 2887, :refresh => 1200
 
     data = {} if data.nil?
 
@@ -123,7 +122,7 @@ print(fit)
 
   def self.stream_chain(data, model, directory = nil, options = {})
     options, directory = directory, nil if Hash === directory
-    debug = Misc.process_options options, :debug
+    debug = IndiferentHash.process_options options, :debug
 
     if directory.nil?
       directory = TmpFile.tmp_file 
@@ -178,7 +177,7 @@ print(fit)
   end
 
   def self.run(data, model, directory, options = {})
-    debug = Misc.process_options options, :debug
+    debug = IndiferentHash.process_options options, :debug
 
     input_directory = File.join(directory, 'inputs')
 
