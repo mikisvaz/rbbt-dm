@@ -1,9 +1,13 @@
 require 'rbbt/vector/model/torch'
 
 class PytorchLightningModel < TorchModel
-  attr_accessor :loader, :val_loader, :trainer
+  attr_accessor :loader, :val_loader, :trainer, :batch_size, :shuffle
   def initialize(...)
     super(...)
+
+    batch_size = training_args.delete(:batch_size) || 2
+    shuffle = training_args.delete(:shuffle)
+    shuffle = true if shuffle.nil?
 
     train_model do |features,labels|
       model = init
@@ -11,16 +15,11 @@ class PytorchLightningModel < TorchModel
       val_loader = self.val_loader
       if (features && features.any?) 
         if loader.nil?
-          #TmpFile.with_file do |tsv_dataset_file|
-          #  TorchModel.feature_dataset(tsv_dataset_file, features, labels)
-          #  dataset = RbbtPython.rbbt_dm.tsv(tsv_dataset_file)
-          #  loader = RbbtPython.run :torch do
-          #    torch.utils.data.DataLoader.call(dataset, batch_size: 2, shuffle: true)
-          #  end
-          #end
           dataset = features.zip(labels)
+          batch_size = self.batch_size
+          shuffle = self.shuffle
           loader = RbbtPython.run :torch do
-            torch.utils.data.DataLoader.call(dataset, batch_size: 2, shuffle: true)
+            torch.utils.data.DataLoader.call(dataset, batch_size: batch_size, shuffle: shuffle)
           end
         end
       end
@@ -32,8 +31,7 @@ class PytorchLightningModel < TorchModel
 
   def trainer
     @trainer ||= begin
-                   options = @model_options[:training_args] || @model_options[:trainer_args] 
-                   RbbtPython.class_new_obj("pytorch_lightning", "Trainer", options || {})
+                   RbbtPython.class_new_obj("pytorch_lightning", "Trainer", training_args || {})
                  end
   end
 end

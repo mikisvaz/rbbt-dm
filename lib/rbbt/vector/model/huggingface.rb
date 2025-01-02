@@ -18,15 +18,12 @@ class HuggingfaceModel < TorchModel
 
     checkpoint = checkpoint.find if Path === checkpoint
 
-    @model_options[:training_options] = @model_options.delete(:training_args) if @model_options.include?(:training_args)
     @model_options[:tokenizer_options] = @model_options.delete(:tokenizer_args) if @model_options.include?(:tokenizer_args)
     @model_options[:model_options] = @model_options.delete(:model_args) if @model_options.include?(:model_args)
 
-    training_args = IndiferentHash.pull_keys @model_options, :training
     tokenizer_args = IndiferentHash.pull_keys @model_options, :tokenizer
     model_args = IndiferentHash.pull_keys @model_options, :model
 
-    @model_options[:training_args] = training_args
     @model_options[:tokenizer_args] = tokenizer_args
     @model_options[:model_args] = model_args
 
@@ -71,7 +68,7 @@ class HuggingfaceModel < TorchModel
         end
 
         dataset_file = TorchModel.text_dataset(tsv_file, texts)
-        training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, @model_options[:training_args])
+        training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, {})
 
         begin
           RbbtPython.call_method("rbbt_dm.huggingface", :predict_model, model, tokenizer, training_args_obj, dataset_file, locate_tokens)
@@ -96,7 +93,7 @@ class HuggingfaceModel < TorchModel
         checkpoint_dir = File.join(tmpdir, 'checkpoints')
       end
 
-      training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, @model_options[:training_args])
+      training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, training_args)
       dataset_file = HuggingfaceModel.text_dataset(tsv_file, texts, labels, @model_options[:class_labels])
 
       RbbtPython.call_method("rbbt_dm.huggingface", :train_model, model, tokenizer, training_args_obj, dataset_file, @model_options[:class_weights])

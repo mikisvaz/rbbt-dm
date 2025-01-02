@@ -7,7 +7,9 @@ class TorchModel < PythonModel
   def initialize(...)
     TorchModel.init_python
     super(...)
-    @training_args = model_options[:training_args] || {}
+
+    @model_options[:training_options] = @model_options.delete(:training_args) if @model_options.include?(:training_args)
+    @training_args = IndiferentHash.pull_keys(@model_options, :training) || {}
 
     init_model do
       model = TorchModel.load_architecture(model_path) 
@@ -42,7 +44,7 @@ class TorchModel < PythonModel
       @device ||= TorchModel.device(model_options)
       @dtype ||= TorchModel.dtype(model_options)
       model.to(@device)
-      @optimizer ||= TorchModel.optimizer(model, training_args)
+      @optimizer ||= TorchModel.optimizer(model, training_args || {})
       epochs = training_args[:epochs] || 3
 
       inputs = TorchModel.tensor(features, @device, @dtype)
