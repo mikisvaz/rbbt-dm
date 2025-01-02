@@ -15,10 +15,10 @@ class PytorchLightningModel < TorchModel
       val_loader = self.val_loader
       if (features && features.any?) 
         if loader.nil?
-          dataset = features.zip(labels)
           batch_size = @batch_size
           shuffle = @shuffle
           loader = RbbtPython.run :torch do
+            dataset = features.zip(labels).collect{|f,l| [torch.tensor(f), l] }
             torch.utils.data.DataLoader.call(dataset, batch_size: batch_size, shuffle: shuffle)
           end
         end
