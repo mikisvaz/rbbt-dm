@@ -5,9 +5,9 @@ class PytorchLightningModel < TorchModel
   def initialize(...)
     super(...)
 
-    batch_size = training_args.delete(:batch_size) || 2
-    shuffle = training_args.delete(:shuffle)
-    shuffle = true if shuffle.nil?
+    @batch_size = training_args.delete(:batch_size) || 2
+    @shuffle = training_args.delete(:shuffle)
+    @shuffle = true if @shuffle.nil?
 
     train_model do |features,labels|
       model = init
@@ -16,8 +16,8 @@ class PytorchLightningModel < TorchModel
       if (features && features.any?) 
         if loader.nil?
           dataset = features.zip(labels)
-          batch_size = self.batch_size
-          shuffle = self.shuffle
+          batch_size = @batch_size
+          shuffle = @shuffle
           loader = RbbtPython.run :torch do
             torch.utils.data.DataLoader.call(dataset, batch_size: batch_size, shuffle: shuffle)
           end
