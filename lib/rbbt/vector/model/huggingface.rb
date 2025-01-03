@@ -19,23 +19,17 @@ class HuggingfaceModel < TorchModel
     checkpoint = checkpoint.find if Path === checkpoint
 
     @model_options[:tokenizer_options] = @model_options.delete(:tokenizer_args) if @model_options.include?(:tokenizer_args)
-    @model_options[:model_options] = @model_options.delete(:model_args) if @model_options.include?(:model_args)
-
     tokenizer_args = IndiferentHash.pull_keys @model_options, :tokenizer
-    model_args = IndiferentHash.pull_keys @model_options, :model
-
     @model_options[:tokenizer_args] = tokenizer_args
-    @model_options[:model_args] = model_args
 
     @model_options[:task] = task if task
     @model_options[:checkpoint] = checkpoint if checkpoint
-
 
     init_model do 
       checkpoint = @model_path && File.directory?(@model_path) ? @model_path : @model_options[:checkpoint]
 
       model = RbbtPython.call_method("rbbt_dm.huggingface", :load_model, 
-                                     @model_options[:task], checkpoint, **(IndiferentHash.setup(@model_options[:model_args])))
+                                     @model_options[:task], checkpoint, **(IndiferentHash.setup(@model_options.except(:training_args, :tokenizer_args, :task, :checkpoint, :class_labels))))
 
       tokenizer_checkpoint = @model_options[:tokenizer_args][:checkpoint] || checkpoint
 

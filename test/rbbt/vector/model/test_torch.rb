@@ -26,7 +26,7 @@ class TestTorch < Test::Unit::TestCase
       model.add 5.0, [10.0]
       model.add 10.0, [20.0]
 
-      model.training_args[:epochs] = 1000
+      model.model_options[:training_args][:epochs] = 1000
       model.train
 
       w = model.get_weights.to_ruby.first.first
