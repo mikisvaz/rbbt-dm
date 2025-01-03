@@ -32,7 +32,7 @@ class PytorchLightningModel < TorchModel
 
   def trainer
     @trainer ||= begin
-                   RbbtPython.class_new_obj("pytorch_lightning", "Trainer", model_options[:training_args] || {})
+                   RbbtPython.class_new_obj("pytorch_lightning", "Trainer", model_options[:training_args].except(:batch_size))
                  end
   end
 end

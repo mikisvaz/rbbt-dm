@@ -59,6 +59,7 @@ class TorchModel < PythonModel
       @device ||= TorchModel.device(model_options)
       @dtype ||= TorchModel.dtype(model_options)
       model.to(@device)
+      model.eval
 
       features = [features] unless list
 
