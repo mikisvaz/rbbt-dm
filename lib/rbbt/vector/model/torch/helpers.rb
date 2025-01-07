@@ -4,12 +4,25 @@ class TorchModel
       RbbtPython.numpy2ruby(self)
     end
 
+    def to_ruby!
+      r = self.to_ruby
+      self.del
+      r
+    end
+
     def length
       PyCall.len(self)
     end
 
     def self.setup(obj)
       obj.extend Tensor
+    end
+
+    def del
+      self.detach
+      self.grad = nil
+      self.storage.resize_ 0
+      self.to("cpu")
     end
   end
 
@@ -51,7 +64,7 @@ class TorchModel
   end
 
   def self.tensor(obj, device, dtype)
-    RbbtPython.torch.tensor(obj, dtype: dtype, device: device)
+    TorchModel::Tensor.setup(RbbtPython.torch.tensor(obj, dtype: dtype, device: device))
   end
 
 end

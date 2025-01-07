@@ -68,14 +68,17 @@ class TorchModel < PythonModel
       batch_size ||= 1
 
       res = Misc.chunk(features, batch_size).inject(nil) do |acc,batch|
-
         tensor = TorchModel.tensor(batch, @device, @dtype)
 
         loss, chunk_res = model.call(tensor)
+        tensor.del
 
         chunk_res = loss if chunk_res.nil?
 
-        acc = acc.nil? ? chunk_res : RbbtPython.torch.cat([acc, chunk_res])
+        TorchModel::Tensor.setup(chunk_res)
+        acc = acc.nil? ? chunk_res.to_ruby! : acc + chunk_res.to_ruby!
+
+        acc
       end
 
       res = TorchModel::Tensor.setup(list ? res : res[0])

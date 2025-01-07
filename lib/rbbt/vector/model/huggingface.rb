@@ -164,6 +164,7 @@ class HuggingfaceModel < TorchModel
   def reset_model
     @model, @tokenizer = nil
     Open.rm_rf @model_path
+    Open.rm_rf TorchModel.model_architecture(model_path)
     init
   end
 end

@@ -27,4 +27,10 @@ class TorchModel
     Log.debug "Loading model architecture from #{model_architecture}"
     RbbtPython.torch.load(model_architecture)
   end
+
+  def reset_model
+    @trainer = @model = nil
+    Open.rm_rf model_path
+    Open.rm_rf TorchModel.model_architecture(model_path)
+  end
 end
