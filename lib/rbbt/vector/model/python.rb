@@ -2,7 +2,7 @@ require 'rbbt/vector/model'
 require 'rbbt/util/python'
 
 RbbtPython.add_path Rbbt.python.find(:lib)
-RbbtPython.init_rbbt
+#RbbtPython.init_rbbt
 
 class PythonModel < VectorModel
   attr_accessor :python_class, :python_module
