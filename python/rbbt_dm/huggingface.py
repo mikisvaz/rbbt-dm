@@ -8,7 +8,10 @@ def import_module_class(module, class_name):
     return eval(class_name)
 
 def load_model(task, checkpoint, **kwargs):
-    if (":" in task):
+    if (task == None or task == 'Embedding'):
+        class_name = 'AutoModel'
+        return import_module_class('transformers', class_name).from_pretrained(checkpoint, **kwargs)
+    elif (":" in task):
         module, class_name = task.split(":")
         if (task == None):
             module, class_name = None, module
@@ -183,3 +186,7 @@ def predict_model(model, tokenizer, training_args, dataset, locate_tokens = None
     else:
         return result
 
+def generate(model, tokenizer, texts, **kwargs):
+    from transformers import pipeline
+    generator = pipeline('text-generation', model=model, tokenizer=tokenizer)
+    return generator(texts, max_length=128, **kwargs)[0]['generated_text']

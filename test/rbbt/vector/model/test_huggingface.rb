@@ -3,7 +3,7 @@ require 'rbbt/vector/model/huggingface'
 
 class TestHuggingface < Test::Unit::TestCase
 
-  def _test_options
+  def test_options
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
       task = "SequenceClassification"
@@ -14,7 +14,7 @@ class TestHuggingface < Test::Unit::TestCase
     end
   end
 
-  def _test_pipeline
+  def test_pipeline
     require 'rbbt/util/python'
     model = VectorModel.new
     model.post_process do |elements|
@@ -30,7 +30,7 @@ class TestHuggingface < Test::Unit::TestCase
     assert_equal ["POSITIVE"], model.eval("I've been waiting for a HuggingFace course my whole life.")
   end
   
-  def _test_tokenizer_size
+  def test_tokenizer_size
     checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
     tokenizer = RbbtPython.call_method("rbbt_dm.huggingface", :load_tokenizer, 
                                        "MaskedLM", checkpoint, :max_length => 5, :model_max_length => 5)
@@ -38,7 +38,7 @@ class TestHuggingface < Test::Unit::TestCase
     assert_equal 5, tokenizer.call("This is a sentence that has several words", truncation: true)["input_ids"].__len__
   end
 
-  def _test_sst_eval
+  def test_sst_eval
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -51,7 +51,49 @@ class TestHuggingface < Test::Unit::TestCase
     end
   end
 
-  def _test_sst_logits
+  def test_embed
+    TmpFile.with_file do |dir|
+      checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+
+      model = HuggingfaceModel.new "Embedding", checkpoint, dir, :tokenizer_args => {:max_length => 16}
+
+      assert_equal 768, model.eval("This is dog").length
+    end
+  end
+
+  def test_embed_array
+    TmpFile.with_file do |dir|
+      checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+
+      model = HuggingfaceModel.new "Embedding", checkpoint, dir, :tokenizer_args => {:max_length => 16}
+
+      assert_equal 768, model.eval_list(["This is dog"]).first.length
+    end
+  end
+
+  def test_generate
+    TmpFile.with_file do |dir|
+      checkpoint = "openai-community/gpt2-medium"
+
+      model = HuggingfaceModel.new "CausalLM", checkpoint, dir, :tokenizer_args => {:max_length => 16}
+
+      iii model.eval("Portugal is")
+    end
+  end
+
+  def test_generate_roles
+    TmpFile.with_file do |dir|
+      checkpoint = "HuggingFaceTB/SmolLM2-135M-Instruct"
+
+      model = HuggingfaceModel.new "CausalLM", checkpoint, dir
+
+      iii model.eval([{role: 'user', content: "Portugal is"}])
+    end
+  end
+
+
+
+  def test_sst_logits
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -92,7 +134,7 @@ class TestHuggingface < Test::Unit::TestCase
     end
   end
 
-  def _test_sst_train_with_labels
+  def test_sst_train_with_labels
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -116,7 +158,7 @@ class TestHuggingface < Test::Unit::TestCase
   end
 
 
-  def _test_sst_train_no_save
+  def test_sst_train_no_save
     checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
     model = HuggingfaceModel.new "SequenceClassification", checkpoint
@@ -133,7 +175,7 @@ class TestHuggingface < Test::Unit::TestCase
     assert_equal ["Good", "Good"], model.eval_list(["This is dog", "This is cat"])
   end
 
-  def _test_sst_train_save_and_load
+  def test_sst_train_save_and_load
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -189,7 +231,7 @@ class TestHuggingface < Test::Unit::TestCase
     end
   end
 
-  def _test_mask_eval
+  def test_mask_eval
     checkpoint = "bert-base-uncased"
 
     model = HuggingfaceModel.new "MaskedLM", checkpoint
@@ -197,7 +239,7 @@ class TestHuggingface < Test::Unit::TestCase
       reject{|v| v.empty?}.length
   end
 
-  def _test_mask_eval_tokenizer
+  def test_mask_eval_tokenizer
     checkpoint = "bert-base-uncased"
 
     model = HuggingfaceModel.new "MaskedLM", checkpoint
@@ -213,7 +255,7 @@ class TestHuggingface < Test::Unit::TestCase
   end
 
 
-  def _test_custom_class
+  def test_custom_class
     TmpFile.with_file do |dir|
       Open.write File.join(dir, "mypkg/__init__.py"), ""
 
@@ -283,7 +325,7 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
     end
   end
 
-  def _test_sst_train_word_embeddings
+  def test_sst_train_word_embeddings
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -313,7 +355,7 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
     end
   end
 
-  def _test_sst_freeze_word_embeddings
+  def test_sst_freeze_word_embeddings
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 
@@ -345,7 +387,7 @@ class RobertaForTokenClassification_NER(RobertaPreTrainedModel):
     end
   end
 
-  def _test_sst_save_word_embeddings
+  def test_sst_save_word_embeddings
     TmpFile.with_file do |dir|
       checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
 

@@ -27,6 +27,7 @@ class TorchModel
   end
 
   def self.init_python
+    RbbtPython.init_rbbt
     RbbtPython.pyimport :torch
     RbbtPython.pyimport :rbbt
     RbbtPython.pyimport :rbbt_dm

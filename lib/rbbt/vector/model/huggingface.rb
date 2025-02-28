@@ -29,7 +29,7 @@ class HuggingfaceModel < TorchModel
       checkpoint = @model_path && File.directory?(@model_path) ? @model_path : @model_options[:checkpoint]
 
       model = RbbtPython.call_method("rbbt_dm.huggingface", :load_model, 
-                                     @model_options[:task], checkpoint, **(IndiferentHash.setup(@model_options.except(:training_args, :tokenizer_args, :task, :checkpoint, :class_labels))))
+                                     @model_options[:task], checkpoint, **(IndiferentHash.setup(@model_options.except(:training_args, :tokenizer_args, :task, :checkpoint, :class_labels, :model_options, :return_logits))))
 
       tokenizer_checkpoint = @model_options[:tokenizer_args][:checkpoint] || checkpoint
 
@@ -37,6 +37,30 @@ class HuggingfaceModel < TorchModel
                                          tokenizer_checkpoint, **(IndiferentHash.setup(@model_options[:tokenizer_args])))
 
       [model, tokenizer]
+    end
+
+    train_model do |texts,labels|
+      model, tokenizer = self.init
+
+      if @directory
+        tsv_file = File.join(@directory, 'dataset.tsv')
+        checkpoint_dir = File.join(@directory, 'checkpoints')
+      else
+        tmpdir = TmpFile.tmp_file
+        Open.mkdir tmpdir
+        tsv_file = File.join(tmpdir, 'dataset.tsv')
+        checkpoint_dir = File.join(tmpdir, 'checkpoints')
+      end
+
+      training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, @model_options[:training_args])
+      dataset_file = HuggingfaceModel.text_dataset(tsv_file, texts, labels, @model_options[:class_labels])
+
+      RbbtPython.call_method("rbbt_dm.huggingface", :train_model, model, tokenizer, training_args_obj, dataset_file, @model_options[:class_weights])
+
+      Open.rm_rf tmpdir if tmpdir
+
+      model.save_pretrained(@model_path) if @model_path
+      tokenizer.save_pretrained(@model_path) if @model_path
     end
 
     eval_model do |texts,is_list|
@@ -69,33 +93,13 @@ class HuggingfaceModel < TorchModel
         ensure
           Open.rm_rf tmpdir if tmpdir
         end
+      elsif @model_options[:task] == "CausalLM"
+        text = is_list ? texts.first : texts
+        RbbtPython.call_method("rbbt_dm.huggingface", :generate, model, tokenizer, text, **@model_options[:training_args])
       else
-        RbbtPython.call_method("rbbt_dm.huggingface", :eval_model, model, tokenizer, [texts], locate_tokens)
+        texts = [texts] if ! is_list
+        RbbtPython.call_method("rbbt_dm.huggingface", :eval_model, model, tokenizer, texts, locate_tokens)
       end
-    end
-
-    train_model do |texts,labels|
-      model, tokenizer = self.init
-
-      if @directory
-        tsv_file = File.join(@directory, 'dataset.tsv')
-        checkpoint_dir = File.join(@directory, 'checkpoints')
-      else
-        tmpdir = TmpFile.tmp_file
-        Open.mkdir tmpdir
-        tsv_file = File.join(tmpdir, 'dataset.tsv')
-        checkpoint_dir = File.join(tmpdir, 'checkpoints')
-      end
-
-      training_args_obj = RbbtPython.call_method("rbbt_dm.huggingface", :training_args, checkpoint_dir, training_args)
-      dataset_file = HuggingfaceModel.text_dataset(tsv_file, texts, labels, @model_options[:class_labels])
-
-      RbbtPython.call_method("rbbt_dm.huggingface", :train_model, model, tokenizer, training_args_obj, dataset_file, @model_options[:class_weights])
-
-      Open.rm_rf tmpdir if tmpdir
-
-      model.save_pretrained(@model_path) if @model_path
-      tokenizer.save_pretrained(@model_path) if @model_path
     end
 
     post_process do |result,is_list|
@@ -104,12 +108,12 @@ class HuggingfaceModel < TorchModel
       if result.respond_to?(:predictions)
         single = false
         predictions = result.predictions
-      elsif result["token_positions"]
-        predictions = result["result"].predictions
-        token_positions = result["token_positions"]
-      else
+      elsif (Hash === result) && result.include?("logits")
         single = true
         predictions = result["logits"]
+      elsif (Hash === result) && result.include?("token_positions")
+        predictions = result["result"].predictions
+        token_positions = result["token_positions"]
       end
 
       if @model_options[:return_logits]
@@ -149,8 +153,14 @@ class HuggingfaceModel < TorchModel
                     end
                     Array === locate_tokens ? item_masks : item_masks.first
                   end
+                when "Embedding"
+                  if result.respond_to?(:predictions)
+                    RbbtPython.numpy2ruby(result.predictions).collect{|v| v[0] }
+                  else
+                    RbbtPython.numpy2ruby(result['last_hidden_state']).collect{|v| v[0] }
+                  end
                 else
-                  predictions
+                  predictions || result
                 end
       end
 
