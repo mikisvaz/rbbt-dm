@@ -141,7 +141,7 @@ module Entity
   module Adjacent
     def path_to(adjacency, entities, threshold = nil, max_steps = nil)
       if Array === self
-        self.collect{|gene| gene.path_to(adjacency, entities, threshold, max_steps)}
+        self.collect{|entity| entity.path_to(adjacency, entities, threshold, max_steps)}
       else
         if adjacency.type == :flat
           max_steps ||= threshold
@@ -154,7 +154,7 @@ module Entity
 
     def random_paths_to(adjacency, l, times, entities)
       if Array === self
-        self.inject([]){|acc,gene| acc += gene.random_paths_to(adjacency, l, times, entities)}
+        self.inject([]){|acc,entity| acc += entity.random_paths_to(adjacency, l, times, entities)}
       else
         paths = []
         times.times do 
