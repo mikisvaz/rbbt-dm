@@ -186,7 +186,7 @@ def predict_model(model, tokenizer, training_args, dataset, locate_tokens = None
     else:
         return result
 
-def generate(model, tokenizer, texts, **kwargs):
+def generate(model, tokenizer, texts, max_length=128, **kwargs):
     from transformers import pipeline
     generator = pipeline('text-generation', model=model, tokenizer=tokenizer)
-    return generator(texts, max_length=128, **kwargs)[0]['generated_text']
+    return generator(texts, max_length=max_length, **kwargs)[0]['generated_text']
